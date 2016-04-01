@@ -33,13 +33,15 @@ const cli = meow(`
     --verbose      Displays verbose logging
     --quiet        Displays no progress or debug logs
     --json         Output results as JSON
+    --debug        Enable debug mode
 
 `);
 
 const defaultUrl = 'https://operasoftware.github.io/pwa-list/';
 const url = cli.input[0] || defaultUrl;
+const debugMode = cli.flags.debug;
 
-if (semver.lt(process.version, '5.9.0')) {
+if (!debugMode && semver.lt(process.version, '5.9.0')) {
   console.error('Lighthouse requires node version 5.9 or newer');
   process.exit(1);
 }
