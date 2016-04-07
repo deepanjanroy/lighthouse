@@ -111,6 +111,15 @@ class ExtensionProtocol extends ChromeProtocol {
     });
   }
 
+  getCurrentTabURL() {
+    if (this.url === undefined || this.url === null) {
+      return this.queryCurrentTab_().then(_ => this.url);
+    }
+
+    return this.url;
+  }
+
+
   attachDebugger_(tabId) {
     return new Promise((resolve, reject) => {
       chrome.debugger.attach({tabId}, '1.1', _ => {
