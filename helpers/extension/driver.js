@@ -26,10 +26,14 @@ class ExtensionProtocol extends ChromeProtocol {
     super();
     this._listeners = {};
     this._tabId = null;
+    this._debuggerConnected = false;
     chrome.debugger.onEvent.addListener(this._onEvent.bind(this));
   }
 
   connect() {
+    if (this._debuggerConnected)
+      return Promise.resolve();
+
     return this.queryCurrentTab_()
       .then(tabId => {
         this._tabId = tabId;
@@ -46,6 +50,7 @@ class ExtensionProtocol extends ChromeProtocol {
         .then(_ => {
           this._tabId = null;
           this.url = null;
+          this._debuggerConnected = false;
         });
   }
 
@@ -126,6 +131,7 @@ class ExtensionProtocol extends ChromeProtocol {
         if (chrome.runtime.lastError) {
           return reject(chrome.runtime.lastError);
         }
+        this._debuggerConnected = true;
 
         resolve(tabId);
       });
@@ -142,6 +148,11 @@ class ExtensionProtocol extends ChromeProtocol {
         resolve(tabId);
       });
     });
+  }
+
+  // Stub to bypass a page reload for now.
+  gotoURL(url, waitForLoad) {
+    return Promise.resolve();
   }
 }
 
