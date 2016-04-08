@@ -16,15 +16,7 @@
  */
 'use strict';
 
-const PAUSE_AFTER_LOAD = 3000;
-
 class GatherScheduler {
-
-  static _pauseAfterLoad() {
-    return new Promise((resolve, reject) => {
-      setTimeout(resolve, PAUSE_AFTER_LOAD);
-    });
-  }
 
   static _runPhase(gatherers, gatherFun) {
     return gatherers.reduce(
@@ -51,8 +43,8 @@ class GatherScheduler {
 
       .then(_ => this._runPhase(gatherers,
           gatherer => gatherer.beforePageLoad(options)))
-      .then(_ => driver.gotoURL(url, driver.WAIT_FOR_LOAD))
-      .then(_ => this._pauseAfterLoad())
+
+      .then(_ => driver.gotoURL(url, driver.WAIT_FOR_LOADED))
 
       .then(_ => this._runPhase(gatherers,
           gatherer => gatherer.afterPageLoad(options)))

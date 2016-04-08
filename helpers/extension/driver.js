@@ -31,8 +31,9 @@ class ExtensionProtocol extends ChromeProtocol {
   }
 
   connect() {
-    if (this._debuggerConnected)
+    if (this._debuggerConnected) {
       return Promise.resolve();
+    }
 
     return this.queryCurrentTab_()
       .then(tabId => {
@@ -124,7 +125,6 @@ class ExtensionProtocol extends ChromeProtocol {
     return this.url;
   }
 
-
   attachDebugger_(tabId) {
     return new Promise((resolve, reject) => {
       chrome.debugger.attach({tabId}, '1.1', _ => {
@@ -150,10 +150,20 @@ class ExtensionProtocol extends ChromeProtocol {
     });
   }
 
-  // Stub to bypass a page reload for now.
+  // Stubs to bypass a page reload for now.
+  /* eslint-disable no-unused-vars */
+  off(eventName, cb) {
+    return undefined;
+  }
+
   gotoURL(url, waitForLoad) {
     return Promise.resolve();
   }
+
+  pendingCommandsComplete() {
+    return Promise.resolve();
+  }
+  /* eslint-enable no-unused-vars */
 }
 
 module.exports = ExtensionProtocol;
