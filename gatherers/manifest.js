@@ -19,38 +19,31 @@
 const Gather = require('./gather');
 const manifestParser = require('../helpers/manifest-parser');
 
-const getManifestContent = `
-  (function () {
-    const errorManifest = (errorString => ({
-      manifest: {
-        raw: undefined,
-        value: undefined,
-        debugString: errorString
-      }
-    }));
+/* global document, XMLHttpRequest */
 
-    const manifestNode = document.querySelector("link[rel=manifest]");
-    if (!manifestNode) {
-      return {error: 'No <link rel="manifest"> found in DOM.'};
-    }
+function getManifestContent() {
+  const manifestNode = document.querySelector('link[rel=manifest]');
+  if (!manifestNode) {
+    return {error: 'No <link rel="manifest"> found in DOM.'};
+  }
 
-    const manifestURL = manifestNode.href;
-    if (!manifestURL) {
-      return {error: 'No href found on <link rel="manifest">.'};
-    }
+  const manifestURL = manifestNode.href;
+  if (!manifestURL) {
+    return {error: 'No href found on <link rel="manifest">.'};
+  }
 
-    const req = new XMLHttpRequest();
-    req.open('GET', manifestURL, false);
-    req.send();
-    if (req.status >= 400) {
-      return {
-        error: \`Unable to fetch manifest at \
-          \${manifestURL}: \${req.status} - \${req.statusText}\`
-      }
-    }
+  const req = new XMLHttpRequest();
+  req.open('GET', manifestURL, false);
+  req.send();
+  if (req.status >= 400) {
+    return {
+      error: `Unable to fetch manifest at \
+        ${manifestURL}: ${req.status} - ${req.statusText}`
+    };
+  }
 
-    return {manifestContent: req.response};
-  }())`;
+  return {manifestContent: req.response};
+}
 
 class Manifest extends Gather {
 
@@ -72,7 +65,7 @@ class Manifest extends Gather {
      * resource is tracked in issue #83
      */
     return driver.sendCommand('Runtime.evaluate', {
-      expression: getManifestContent,
+      expression: `(${getManifestContent.toString()}())`,
       returnByValue: true
     }).then(returnedData => {
       if (returnedData.result.value === undefined ||
@@ -81,7 +74,8 @@ class Manifest extends Gather {
        // The returned object from Runtime.evaluate is an enigma
        // Sometimes if the returned object is not easily serializable,
        // it sets value = {}
-        throw new Error('Failed to get proper result from runtime eval');
+        throw new Error('Manifest gather error: ' +
+          'Failed to get proper result from runtime eval');
       }
 
       const returnedValue = returnedData.result.value;
@@ -93,7 +87,6 @@ class Manifest extends Gather {
           manifest: manifestParser(returnedValue.manifestContent)
         };
       }
-
     });
   }
 }
