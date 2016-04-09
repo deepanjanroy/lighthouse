@@ -40,7 +40,7 @@ const getManifestContent = `
     }
 
     const req = new XMLHttpRequest();
-    req.open('GET', manifestURL, false); // plstest: url, redirect
+    req.open('GET', manifestURL, false);
     req.send();
     if (req.status >= 400) {
       return {
@@ -88,11 +88,12 @@ class Manifest extends Gather {
 
       if (returnedValue.error) {
         this.artifact = Manifest._errorManifest(returnedValue.error);
+      } else {
+        this.artifact = {
+          manifest: manifestParser(returnedValue.manifestContent)
+        };
       }
 
-      this.artifact = {
-        manifest: manifestParser(returnedValue.manifestContent)
-      };
     });
   }
 }
