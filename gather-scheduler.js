@@ -59,6 +59,7 @@ class GatherScheduler {
           gatherer => gatherer.setup(options)))
 
       // Enable tracing and network record collection.
+      .then(_ => driver.beginFrameLoadCollect())
       .then(_ => driver.beginTrace())
       .then(_ => driver.beginNetworkCollect())
 
@@ -90,6 +91,7 @@ class GatherScheduler {
       .then(traceContents => {
         tracingData.traceContents = traceContents;
       })
+      .then(_ => driver.endFrameLoadCollect())
 
       // Gather: afterTraceCollected phase.
       .then(_ => this._runPhase(gatherers,
@@ -105,10 +107,54 @@ class GatherScheduler {
       // Collate all the gatherer results.
       .then(_ => {
         artifacts.push(...gatherers.map(g => g.artifact));
+        // debug
+        const fs = require('fs');
         artifacts.push(
           {networkRecords: tracingData.networkRecords},
           {traceContents: tracingData.traceContents}
         );
+        const clovisTracks = {};
+        // TODO: do not depend on url being the first artifact
+        clovisTracks.url = artifacts[0]['url'];
+        clovisTracks.tracing_track = { events: artifacts[artifacts.length - 1]['traceContents'] };
+
+        function replaceKey(obj, oldKey, newKey) {
+          if (obj[oldKey] !== undefined) {
+            obj[newKey] = obj[oldKey];
+            delete obj[oldKey];
+          }
+        }
+
+        const requestTrackEvents = tracingData.networkRecords.map(rec => {
+          const event = Object.assign({}, rec);
+          replaceKey(event, '_documentURL', 'document_url');
+          replaceKey(event, '_frameId', 'frame_id');
+          replaceKey(event, '_initialPriority', 'initial_priority');
+          replaceKey(event, '_loaderId', 'loader_id');
+          replaceKey(event, '_mimeType', 'mime_type');
+          replaceKey(event, '_requestHeaders', 'request_headers');
+          replaceKey(event, '_requestId', 'request_id');
+          replaceKey(event, '_resourceType', 'resource_type');
+          replaceKey(event, '_responseHeaders', 'response_headers');
+
+          for (let key of Object.keys(event)) {
+            if (key.length > 1 && key[0] === '_' && key[1] !== '_') {
+              replaceKey(event, key, key.substring(1));
+            }
+          }
+          return event;
+        });
+        clovisTracks.request_track = { 
+          events: requestTrackEvents,
+          metadata: {
+            // duplicates_count: 0,
+            // inconsistent_initiators: 0
+          }
+        };
+        clovisTracks.page_track = [];
+        clovisTracks.metadata = {};
+        fs.writeFileSync("artifacts.log", JSON.stringify(artifacts));
+        fs.writeFileSync("clovis.log", JSON.stringify(clovisTracks));
       })
       .then(_ => artifacts);
   }

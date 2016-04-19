@@ -18,6 +18,7 @@
 
 const chromeRemoteInterface = require('chrome-remote-interface');
 const NetworkRecorder = require('../network-recorder');
+const FrameLoadRecorder = require('../frame-load-recorder');
 const emulation = require('../emulation');
 const Element = require('../element.js');
 const port = process.env.PORT || 9222;
@@ -289,6 +290,21 @@ class ChromeProtocol {
       this._networkRecorder = null;
       this._networkRecords = [];
     });
+  }
+
+  beginFrameLoadCollect() {
+    this._frameLoadRecorder = new FrameLoadRecorder();
+    this.on('Page.frameStartedLoading', this._frameLoadRecorder.onFrameStartedLoading);
+    this.on('Page.frameStoppedLoading', this._frameLoadRecorder.onFrameStoppedLoading);
+    this.on('Page.frameAttached', this._frameLoadRecorder.onFrameAttached);
+  }
+
+  endFrameLoadCollect() {
+    this._frameLoadRecorder = new FrameLoadRecorder();
+    this.off('Page.frameStartedLoading', this._frameLoadRecorder.onFrameStartedLoading);
+    this.off('Page.frameStoppedLoading', this._frameLoadRecorder.onFrameStoppedLoading);
+    this.off('Page.frameAttached', this._frameLoadRecorder.onFrameAttached);
+    return _frameLoadRecorder.getEvents();
   }
 
   beginEmulation() {
