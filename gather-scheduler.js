@@ -155,7 +155,7 @@ function run(gatherers, options) {
 
       const artifacts = flattenArtifacts(unflattenedArtifacts);
 
-      if (options.flags.netdepGraph) {
+      if (options.flags.saveArtifacts) {
         saveArtifacts(artifacts);
       }
 
