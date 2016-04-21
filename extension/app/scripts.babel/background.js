@@ -21,6 +21,18 @@ const ExtensionProtocol = require('../../../helpers/extension/driver.js');
 const runner = require('../../../runner');
 const NO_SCORE_PROVIDED = '-1';
 
+window.createPageAndPopulate = function(results) {
+  const tabURL = chrome.extension.getURL('/pages/report.html');
+  chrome.tabs.create({url: tabURL}, tab => {
+    // Have a timeout here so that the receiving side has time to load
+    // and register an event listener for onMessage. Otherwise the
+    // message sent with the results will be lost.
+    setTimeout(_ => {
+      chrome.tabs.sendMessage(tab.id, results);
+    }, 1000);
+  });
+};
+
 window.runAudits = function(options) {
   const driver = new ExtensionProtocol();
 
@@ -28,14 +40,8 @@ window.runAudits = function(options) {
       .then(url => {
         // Add in the URL to the options.
         return runner(driver, Object.assign({}, options, {url}));
-      })
-      .then(results => createResultsHTML(results))
-      .catch(returnError);
+      });
 };
-
-function returnError(err) {
-  return `<div class="error">Unable to audit page: ${escapeHTML(err.message)}</div>`;
-}
 
 function escapeHTML(str) {
   return str.replace(/&/g, '&amp;')
@@ -46,10 +52,10 @@ function escapeHTML(str) {
     .replace(/`/g, '&#96;');
 }
 
-function createResultsHTML(results) {
+window.createResultsHTML = function(results) {
   let resultsHTML = '';
 
-  results.forEach(item => {
+  results.aggregations.forEach(item => {
     const score = (item.score.overall * 100).toFixed(0);
     const groupHasErrors = (score < 100);
     const groupClass = 'group ' +
@@ -82,7 +88,7 @@ function createResultsHTML(results) {
   });
 
   return resultsHTML;
-}
+};
 
 chrome.runtime.onInstalled.addListener(details => {
   console.log('previousVersion', details.previousVersion);

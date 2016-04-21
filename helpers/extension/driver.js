@@ -30,6 +30,7 @@ class ExtensionProtocol extends ChromeProtocol {
     this._tabId = null;
     this._debuggerConnected = false;
     chrome.debugger.onEvent.addListener(this._onEvent.bind(this));
+    this.handleUnexpectedDetach();
   }
 
   connect() {
@@ -103,13 +104,16 @@ class ExtensionProtocol extends ChromeProtocol {
       log('method => browser', command, params);
       chrome.debugger.sendCommand({tabId: this._tabId}, command, params, result => {
         if (chrome.runtime.lastError) {
+          log('error', 'method <= browser', command, result);
           return reject(chrome.runtime.lastError);
         }
 
         if (result.wasThrown) {
+          log('error', 'method <= browser', command, result);
           return reject(result.exceptionDetails);
         }
 
+        log('method <= browser OK', command, result);
         resolve(result);
       });
     });
@@ -148,7 +152,6 @@ class ExtensionProtocol extends ChromeProtocol {
           return reject(chrome.runtime.lastError);
         }
         this._debuggerConnected = true;
-
         resolve(tabId);
       });
     });
@@ -163,6 +166,13 @@ class ExtensionProtocol extends ChromeProtocol {
 
         resolve(tabId);
       });
+    });
+  }
+
+  handleUnexpectedDetach() {
+    chrome.debugger.onDetach.addListener((debuggee, detachReason) => {
+      this._debuggerConnected = false;
+      throw new Error('Lighthouse detached from browser: ' + detachReason);
     });
   }
 
