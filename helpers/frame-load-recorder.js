@@ -30,15 +30,15 @@ class FrameLoadRecorder {
   }
 
   onFrameStartedLoading(data) {
-    this._events.push({frame_id: data.frameId, method: 'Page.frameStartedLoading' });
+    this._events.push({frameId: data.frameId, method: 'Page.frameStartedLoading'});
   }
 
   onFrameStoppedLoading(data) {
-    this._events.push({frame_id: data.frameId, method: 'Page.frameStoppedLoading' });
+    this._events.push({frameId: data.frameId, method: 'Page.frameStoppedLoading'});
   }
 
   onFrameAttached(data) {
-    this._events.push({frame_id: data.frameId, method: 'Page.frameAttached' });
+    this._events.push({frameId: data.frameId, method: 'Page.frameAttached'});
   }
 
 }

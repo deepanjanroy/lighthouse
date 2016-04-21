@@ -287,7 +287,7 @@ class ChromeProtocol {
 
       resolve({
         networkRecords: this._networkRecords,
-        rawNetworkEvents: this._rawNetworkEvents,
+        rawNetworkEvents: this._rawNetworkEvents
       });
 
       this._networkRecorder = null;

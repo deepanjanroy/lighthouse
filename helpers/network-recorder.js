@@ -44,7 +44,7 @@ class NetworkRecorder {
   // the parameter naming used in NetworkManager. These are noted below.
 
   onRequestWillBeSent(data) {
-    this._rawEvents.push({method: 'Network.requestWillBeSent', 'params': data});
+    this._rawEvents.push({method: 'Network.requestWillBeSent', params: data});
     // NOTE: data.timestamp -> time, data.type -> resourceType
     this.networkManager._dispatcher.requestWillBeSent(data.requestId,
         data.frameId, data.loaderId, data.documentURL, data.request,

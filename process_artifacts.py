@@ -35,7 +35,9 @@ def create_tracing_track(trace_events):
             or event['cat'] == '__metadata']}
 
 def create_page_track(frame_load_events):
-  return {'events': frame_load_events}
+  events = [{'frame_id': e['frameId'], 'method': e['method']} 
+            for e in frame_load_events]
+  return {'events': events}
 
 def create_request_track(raw_network_events):
   request_track = RequestTrack(None)

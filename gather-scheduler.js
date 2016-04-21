@@ -76,14 +76,13 @@ function endPassiveCollection(options, tracingData) {
   }).then(traceContents => {
     tracingData.traceContents = traceContents;
   }).then(_ => {
-    return driver.endFrameLoadCollect()
+    return driver.endFrameLoadCollect();
   }).then(frameLoadEvents => {
-      tracingData.frameLoadEvents = frameLoadEvents;
+    tracingData.frameLoadEvents = frameLoadEvents;
   }).then(_ => {
     return saveTrace && this.saveAssets(tracingData, options.url);
   });
 }
-
 
 function phaseRunner(gatherers) {
   return function runPhase(gatherFun) {
@@ -100,11 +99,10 @@ function flattenArtifacts(artifacts) {
 }
 
 function saveArtifacts(artifacts) {
-  const artifactsFilename = "artifacts.log";
+  const artifactsFilename = 'artifacts.log';
   fs.writeFileSync(artifactsFilename, JSON.stringify(artifacts));
   log('info', 'artifacts file saved to disk', artifactsFilename);
 }
-
 
 function saveAssets(tracingData, url) {
   const date = new Date();
@@ -164,7 +162,6 @@ function run(gatherers, options) {
       return artifacts;
     });
 }
-
 
 module.exports = {
   loadPage,
