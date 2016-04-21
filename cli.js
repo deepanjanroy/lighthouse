@@ -36,6 +36,7 @@ const cli = meow(`
     --mobile       Emulates a Nexus 5X (default=true)
     --load-page    Loads the page (default=true)
     --save-trace   Save the trace contents to disk
+    --netdep-graph Generate network dependency graph
 `);
 
 const defaultUrl = 'https://operasoftware.github.io/pwa-list/';

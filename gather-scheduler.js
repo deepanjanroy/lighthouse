@@ -16,6 +16,8 @@
  */
 'use strict';
 
+const fs = require('fs');
+
 const log = (typeof process !== 'undefined' && 'version' in process) ?
     require('npmlog').log : console.log.bind(console);
 
@@ -60,20 +62,25 @@ class GatherScheduler {
 
   // Enable tracing and network record collection.
   static beginPassiveCollection(driver) {
-    return driver.beginTrace().then(_ => {
-      return driver.beginNetworkCollect();
-    });
+    return driver.beginTrace()
+      .then(_ => driver.beginNetworkCollect())
+      .then(_ => driver.beginFrameLoadCollect());
   }
 
   static endPassiveCollection(options, tracingData) {
     const driver = options.driver;
     const saveTrace = options.flags.saveTrace;
-    return driver.endNetworkCollect().then(networkRecords => {
-      tracingData.networkRecords = networkRecords;
+    return driver.endNetworkCollect().then(networkData => {
+      tracingData.networkRecords = networkData.networkRecords;
+      tracingData.rawNetworkEvents = networkData.rawNetworkEvents;
     }).then(_ => {
       return driver.endTrace();
     }).then(traceContents => {
       tracingData.traceContents = traceContents;
+    }).then(_ => {
+      return driver.endFrameLoadCollect()
+    }).then(frameLoadEvents => {
+        tracingData.frameLoadEvents = frameLoadEvents;
     }).then(_ => {
       return saveTrace && this.saveAssets(tracingData, options.url);
     });
@@ -83,6 +90,12 @@ class GatherScheduler {
     return gatherers.reduce((chain, gatherer) => {
       return chain.then(_ => gatherFun(gatherer));
     }, Promise.resolve());
+  }
+
+  static _flattenArtifacts(artifacts) {
+    return artifacts.reduce(function(prev, curr) {
+      return Object.assign(prev, curr);
+    }, {});
   }
 
   static run(gatherers, options) {
@@ -131,10 +144,26 @@ class GatherScheduler {
           gatherer => gatherer.tearDown(options));
     }).then(_ => {
       // Collate all the gatherer results.
-      return gatherers.map(g => g.artifact).concat(
+      const unflattenedArtifacts = gatherers.map(g => g.artifact).concat(
           {networkRecords: tracingData.networkRecords},
-          {traceContents: tracingData.traceContents});
+          {rawNetworkEvents: tracingData.rawNetworkEvents},
+          {traceContents: tracingData.traceContents},
+          {frameLoadEvents: tracingData.frameLoadEvents});
+
+      const artifacts = GatherScheduler._flattenArtifacts(unflattenedArtifacts);
+
+      if (options.flags.netdepGraph) {
+        GatherScheduler.saveArtifacts(artifacts);
+      }
+
+      return artifacts;
     });
+  }
+
+  static saveArtifacts(artifacts) {
+    const artifactsFilename = "artifacts.log";
+    fs.writeFileSync(artifactsFilename, JSON.stringify(artifacts));
+    log('info', 'artifacts file saved to disk', artifactsFilename);
   }
 
   static saveAssets(tracingData, url) {
@@ -142,7 +171,7 @@ class GatherScheduler {
     const hostname = url.match(/^.*?\/\/(.*?)(:?\/|$)/)[1];
     const filename = (hostname + '_' + date.toISOString() + '.trace.json')
         .replace(/[\/\?<>\\:\*\|":]/g, '-');
-    require('fs').writeFileSync(filename, JSON.stringify(tracingData.traceContents, null, 2));
+    fs.writeFileSync(filename, JSON.stringify(tracingData.traceContents, null, 2));
     log('info', 'trace file saved to disk', filename);
   }
 }
