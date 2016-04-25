@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Usage:
-#     CHROMIUM_SOURCE_PATH=$HOME/chromium/src ./netdep-graph.sh ../artifacts.log
+#     CHROMIUM_SOURCE_PATH=$HOME/chromium/src ./netdep-graph-png.sh ../artifacts.log
 #     open network-dependency-graph.png
 
 if [[ x"$CHROMIUM_SOURCE_PATH" == x ]]; then
