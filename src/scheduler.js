@@ -16,6 +16,7 @@
  */
 'use strict';
 
+const child_process = require('child_process');
 const fs = require('fs');
 
 const log = require('./lib/log.js');
@@ -111,6 +112,12 @@ function saveAssets(tracingData, url) {
   log('info', 'trace file saved to disk', filename);
 }
 
+function getNetDepGraph(artifacts) {
+  child_process.execSync('python scripts/netdep_graph_json.py');
+  const depGraphString = fs.readFileSync('dependency-graph.json');
+  return JSON.parse(depGraphString);
+}
+
 function run(gatherers, options) {
   const driver = options.driver;
   const tracingData = {};
@@ -151,10 +158,14 @@ function run(gatherers, options) {
           {traceContents: tracingData.traceContents},
           {frameLoadEvents: tracingData.frameLoadEvents});
 
-      const artifacts = flattenArtifacts(unflattenedArtifacts);
+      let artifacts = flattenArtifacts(unflattenedArtifacts);
 
-      if (options.flags.saveArtifacts) {
+      if (options.flags.saveArtifacts || options.flags.useNetDepGraph) {
         saveArtifacts(artifacts);
+      }
+
+      if (options.flags.useNetDepGraph) {
+        artifacts.graph = getNetDepGraph(artifacts);
       }
 
       return artifacts;
