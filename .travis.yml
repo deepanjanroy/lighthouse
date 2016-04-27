@@ -22,3 +22,5 @@ script:
   - npm run closure
   - npm run smoke
   - (cd extension && gulp build)
+  - pip install --user pylint
+  - pylint --rcfile=scripts/pylint.conf scripts/*.py
