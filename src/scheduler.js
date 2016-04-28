@@ -113,8 +113,11 @@ function saveAssets(tracingData, url) {
 }
 
 function getNetDepGraph(artifacts) {
+  child_process.execSync('python scripts/process_artifacts.py');
   child_process.execSync('python scripts/netdep_graph_json.py');
-  const depGraphString = fs.readFileSync('dependency-graph.json');
+  // './' + '..' prevents brfs from inlining it
+  // This way extention can still work
+  const depGraphString = fs.readFileSync('./' + 'dependency-graph.json');
   return JSON.parse(depGraphString);
 }
 
