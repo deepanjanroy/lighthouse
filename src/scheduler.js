@@ -112,13 +112,14 @@ function saveAssets(tracingData, url) {
   log('info', 'trace file saved to disk', filename);
 }
 
-function getNetDepGraph(artifacts) {
+function getNetworkDependencyGraph(artifacts) {
   child_process.execSync('python scripts/process_artifacts.py');
   child_process.execSync('python scripts/netdep_graph_json.py');
-  // './' + '..' prevents brfs from inlining it
-  // This way extention can still work
+  // './' + '..' prevents brfs from inlining the generated file
+  // This way extention can still compile
+  // The extension never hits this code path since is guarded by cli flag
   const depGraphString = fs.readFileSync('./' + 'dependency-graph.json');
-  return JSON.parse(depGraphString);
+  return JSON.parse(depGraphString).graph;
 }
 
 function run(gatherers, options) {
@@ -168,7 +169,7 @@ function run(gatherers, options) {
       }
 
       if (options.flags.useNetDepGraph) {
-        artifacts.graph = getNetDepGraph(artifacts);
+        artifacts.networkDependencyGraph = getNetworkDependencyGraph(artifacts);
       }
 
       return artifacts;
