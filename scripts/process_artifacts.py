@@ -42,7 +42,8 @@ def create_page_track(frame_load_events):
 def create_request_track(raw_network_events):
   request_track = RequestTrack(None)
   for event in raw_network_events:
-    request_track.Handle(event['method'], event)
+    if event['method'] in RequestTrack._METHOD_TO_HANDLER:
+      request_track.Handle(event['method'], event)
   return request_track.ToJsonDict()
 
 def main():
