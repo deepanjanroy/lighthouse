@@ -17,7 +17,6 @@
 
 const Audit = require('../../../../src/audits/performance/overdependent-critical-resources');
 const assert = require('assert');
-const artifacts = require('./ocr-artifacts.json');
 
 function generateTestArtifacts(prioritiesList, edges) {
   const networkRecords = prioritiesList.map((priority, index) =>
@@ -84,14 +83,14 @@ describe('Performance: overdependent-critical-resources audit', () => {
       expectedChains: [[0, 2], [1, 3]]
     }));
 
-  it('return correct data for fork at root', () =>
+  it('returns correct data for fork at root', () =>
     testAudit({
       priorityList: [HIGH, HIGH, HIGH],
       edges: [[0, 1], [0, 2]],
       expectedChains: [[0, 1], [0, 2]]
     }))
 
-  it('return correct data for fork at non root', () =>
+  it('returns correct data for fork at non root', () =>
     testAudit({
       priorityList: [HIGH, HIGH, HIGH, HIGH],
       edges: [[0, 1], [1, 2], [1, 3]],
