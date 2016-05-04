@@ -41,16 +41,17 @@ class ExtensionDriver extends Driver {
       .then(tabId => {
         this._tabId = tabId;
         this.beginLogging();
-        return this.attachDebugger_(tabId);
+        return this.attachDebugger_(tabId)
+            .then(_ => this.enableRuntimeEvents());
       });
   }
 
   disconnect() {
     if (this._tabId === null) {
-      return;
+      return Promise.resolve();
     }
 
-    this.detachDebugger_(this._tabId)
+    return this.detachDebugger_(this._tabId)
         .then(_ => {
           this._tabId = null;
           this.url = null;

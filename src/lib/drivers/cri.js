@@ -42,9 +42,12 @@ class CriDriver extends Driver {
         }
 
         chromeRemoteInterface({port: port, chooseTab: tab}, chrome => {
+          this._tab = tab;
           this._chrome = chrome;
           this.beginLogging();
-          resolve();
+          this.enableRuntimeEvents().then(_ => {
+            resolve();
+          });
         }).on('error', e => reject(e));
       });
       /* eslint-enable new-cap */
@@ -52,13 +55,31 @@ class CriDriver extends Driver {
   }
 
   disconnect() {
-    if (this._chrome === null) {
-      return;
-    }
+    return new Promise((resolve, reject) => {
+      if (!this._tab) {
+        return resolve();
+      }
 
-    this._chrome.close();
-    this._chrome = null;
-    this.url = null;
+      /* eslint-disable new-cap */
+      chromeRemoteInterface.Close({
+        id: this._tab.id
+      }, err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+      /* eslint-enable new-cap */
+    })
+    .then(() => {
+      if (this._chrome) {
+        this._chrome.close();
+      }
+      this._tab = null;
+      this._chrome = null;
+      this.url = null;
+    });
   }
 
   beginLogging() {
