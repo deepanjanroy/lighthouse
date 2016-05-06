@@ -118,7 +118,7 @@ describe('Performance: overdependent-critical-resources audit', () => {
       expectedChains: [[0], [1]]
     }));
 
-  it('returns correct data on a random kinda big graph', () =>
+  it('returns correct data on a random big graph', () =>
     testAudit({
       priorityList: Array(9).fill(HIGH),
       edges: [[0, 1], [1, 2], [1, 3], [4, 5], [5,7], [7, 8], [5, 6]],

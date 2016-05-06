@@ -17,10 +17,10 @@
 
 'use strict';
 
-const FMPMetric = require('../../metrics/first-meaningful-paint');
-const Audit = require('../audit');
+const Gather = require('../gather');
 
 const flatten = arr => arr.reduce((a, b) => a.concat(b), []);
+const contains = (arr, elm) => arr.indexOf(elm) > -1;
 
 class Node {
   constructor(requestId, parent) {
@@ -42,50 +42,32 @@ class Node {
   }
 }
 
-class OverdependentCriticalResources extends Audit {
-  /**
-   * @override
-   */
-  static get tags() {
-    return ['Performance'];
-  }
-
-  /**
-   * @override
-   */
-  static get name() {
-    return 'overdependent-critical-resources';
-  }
-
-  /**
-   * @override
-   */
-  static get description() {
-    return 'Long chain of critical resources';
-  }
+class CriticalNetworkRequestChains extends Gather {
 
   static _getChains(startNode) {
+    // DFS-ish to get chains
     if (startNode.children.length === 0) {
       return [[startNode]];
     } else {
       const childrenChains = flatten(startNode.children.map(child =>
-        OverdependentCriticalResources._getChains(child)));
+        CriticalNetworkRequestChains._getChains(child)));
       return childrenChains.map(chain => [startNode].concat(chain));
     }
+  }
+
+  get criticalPriorities() {
+    return ['VeryHigh', 'High', 'Medium'];
   }
 
   /**
    * Audits the page to see if there is a long chain of critical resource
    * dependency
-   * @param {!Artifacts} artifacts The artifacts from the gather phase.
-   * @return {!AuditResult} The score from the audit, ranging from 0-100.
    */
-  static audit(artifacts) {
-    const criticalPriorities = ['VeryHigh', 'High', 'Medium'];
+  static postProfiling() {
     const criticalRequests = artifacts.networkRecords.filter(req =>
-      criticalPriorities.indexOf(req._initialPriority) > -1
-    );
+      contains(criticalPriorities, req));
 
+    // Build a map of requestID -> Node.
     const graph = artifacts.networkDependencyGraph;
     const requestIdToNodes = new Map();
     for (let request of criticalRequests) {
@@ -94,6 +76,7 @@ class OverdependentCriticalResources extends Audit {
       requestIdToNodes.set(requestId, requestNode);
     }
 
+    // Connect the parents and children.
     for (let edge of graph.edges) {
       const fromNode = graph.nodes[edge.__from_node_index];
       const toNode = graph.nodes[edge.__to_node_index];
@@ -113,14 +96,13 @@ class OverdependentCriticalResources extends Audit {
     const nodesList = [...requestIdToNodes.values()];
     const orphanNodes = nodesList.filter(node => node.parent === null);
     const chains = flatten(orphanNodes.map(node =>
-      OverdependentCriticalResources._getChains(node)));
+      CriticalNetworkRequestChains._getChains(node)));
 
     const maxChainLength = Math.max(0, ...chains.map(chain => chain.length));
 
-    // Returning random things + the chain. DO NOT SHIP.
-    return Promise.resolve(OverdependentCriticalResources.generateAuditResult(
-      maxChainLength, chains, "foo bar"));
+    return Promise.resolve({CriticalNetworkRequestChains: chains});
+    }));
   }
 }
 
-module.exports = OverdependentCriticalResources;
+module.exports = CriticalNetworkRequestChains;
