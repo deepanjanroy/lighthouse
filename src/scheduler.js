@@ -16,9 +16,7 @@
  */
 'use strict';
 
-const child_process = require('child_process');
 const fs = require('fs');
-
 const log = require('./lib/log.js');
 
 function loadPage(driver, gatherers, options) {
@@ -112,19 +110,10 @@ function saveAssets(tracingData, url) {
   log.log('info', 'trace file saved to disk', filename);
 }
 
-function getNetworkDependencyGraph(artifacts) {
-  child_process.execSync('python scripts/process_artifacts.py');
-  child_process.execSync('python scripts/netdep_graph_json.py');
-  // './' + '..' prevents brfs from inlining the generated file
-  // This way extention can still compile
-  // The extension never hits this code path since is guarded by cli flag
-  const depGraphString = fs.readFileSync('./' + 'dependency-graph.json');
-  return JSON.parse(depGraphString).graph;
-}
-
 function run(gatherers, options) {
   const driver = options.driver;
   const tracingData = {};
+
 
   if (options.url === undefined || options.url === null) {
     throw new Error('You must provide a url to scheduler');
@@ -168,12 +157,8 @@ function run(gatherers, options) {
 
       let artifacts = flattenArtifacts(unflattenedArtifacts);
 
-      if (options.flags.saveArtifacts || options.flags.useNetDepGraph) {
+      if (options.flags.saveArtifacts) {
         saveArtifacts(artifacts);
-      }
-
-      if (options.flags.useNetDepGraph) {
-        artifacts.networkDependencyGraph = getNetworkDependencyGraph(artifacts);
       }
 
       return artifacts;

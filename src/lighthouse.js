@@ -41,7 +41,6 @@ const audits = [
   require('./audits/mobile-friendly/viewport'),
   require('./audits/mobile-friendly/display'),
   require('./audits/performance/first-meaningful-paint'),
-  require('./audits/performance/overdependent-critical-resources'),
   require('./audits/performance/speed-index-metric'),
   require('./audits/manifest/exists'),
   require('./audits/manifest/background-color'),
@@ -79,6 +78,10 @@ module.exports = function(driver, opts) {
   }
 
   const gatherers = gathererClasses.map(G => new G());
+  if (opts.flags.useNetDepGraph) {
+    const criticalChainClass = require('./gatherers/critical-network-chains');
+    gatherers.push(new criticalChainClass());
+  }
 
   return Scheduler
       .run(gatherers, Object.assign({}, opts, {driver}))

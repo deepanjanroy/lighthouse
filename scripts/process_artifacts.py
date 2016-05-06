@@ -47,7 +47,7 @@ def create_request_track(raw_network_events):
   return request_track.ToJsonDict()
 
 def main():
-  with open('artifacts.log', 'r') as f:
+  with open('clovisData.json', 'r') as f:
     artifacts = json.load(f)
 
   clovis_trace = {}
