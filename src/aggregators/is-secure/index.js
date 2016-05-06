@@ -22,6 +22,9 @@ const Aggregate = require('../aggregate');
 /** @type {string} */
 const isOnHTTPS = require('../../audits/security/is-on-https').name;
 
+/** @type {string} */
+const redirectsHTTP = require('../../audits/security/redirects-http').name;
+
 class IsSecure extends Aggregate {
 
   /**
@@ -47,6 +50,11 @@ class IsSecure extends Aggregate {
   static get criteria() {
     const criteria = {};
     criteria[isOnHTTPS] = {
+      value: true,
+      weight: 1
+    };
+
+    criteria[redirectsHTTP] = {
       value: true,
       weight: 1
     };

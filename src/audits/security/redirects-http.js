@@ -16,20 +16,40 @@
  */
 'use strict';
 
-const Gather = require('./gather');
+const Audit = require('../audit');
 
-class HTTPS extends Gather {
-  beforePageLoad(options) {
-    const driver = options.driver;
-    driver.on('Security.securityStateChanged', data => {
-      this.artifact = {
-        https: (data.securityState === 'secure' &&
-            data.schemeIsCryptographic)
-      };
+class RedirectsHTTP extends Audit {
+  /**
+   * @override
+   */
+  static get tags() {
+    return ['Security'];
+  }
+
+  /**
+   * @override
+   */
+  static get name() {
+    return 'redirects-http';
+  }
+
+  /**
+   * @override
+   */
+  static get description() {
+    return 'Site redirects HTTP traffic to HTTPS';
+  }
+
+  /**
+   * @param {!Artifacts} artifacts
+   * @return {!AuditResult}
+   */
+  static audit(artifacts) {
+    return RedirectsHTTP.generateAuditResult({
+      value: artifacts.redirectsHTTP.value,
+      debugString: artifacts.redirectsHTTP.debugString
     });
-
-    driver.enableSecurityEvents();
   }
 }
 
-module.exports = HTTPS;
+module.exports = RedirectsHTTP;

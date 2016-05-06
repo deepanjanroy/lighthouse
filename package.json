@@ -2,6 +2,7 @@
   "name": "lighthouse",
   "version": "1.0.0",
   "description": "",
+  "main": "./module/",
   "bin": "./cli/index.js",
   "engines": {
     "node": ">=5"
@@ -14,7 +15,7 @@
     "unit": "mocha $(find ./test -name '*.js') --timeout 60000",
     "chrome": "./scripts/launch-chrome.sh",
     "smoke": "./scripts/run-smoke-tests.sh",
-    "start": "node cli.js"
+    "start": "node ./cli/index.js"
   },
   "repository": "googlechrome/lighthouse",
   "keywords": [
