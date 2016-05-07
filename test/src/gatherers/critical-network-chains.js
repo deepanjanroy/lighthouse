@@ -15,36 +15,39 @@
  */
 'use strict';
 
-const Audit = require('../../../../src/audits/performance/overdependent-critical-resources');
+const GathererClass = require('../../../src/gatherers/critical-network-chains');
 const assert = require('assert');
 
-function generateTestArtifacts(prioritiesList, edges) {
+const Gatherer = new GathererClass();
+
+function mockTracingData(prioritiesList, edges) {
   const networkRecords = prioritiesList.map((priority, index) =>
       ({_requestId: index, _initialPriority: priority}));
 
   const nodes = networkRecords.map(record =>
     ({request: {request_id: record._requestId}}));
 
-  const artifactEdges = edges.map(edge =>
+  const graphEdges = edges.map(edge =>
     ({__from_node_index: edge[0], __to_node_index: edge[1]}));
 
   return {
     networkRecords: networkRecords,
-    networkDependencyGraph: {
+    graph: {
       nodes: nodes,
-      edges: artifactEdges
+      edges: graphEdges
     }
   };
 }
 
-function testAudit(data) {
-  const artifacts = generateTestArtifacts(data.priorityList, data.edges);
-  return Audit.audit(artifacts)
-    .then(response => response.rawValue)
-    .then(chains => chains.map(chain => chain.map(node => node.requestId)))
-    .then(requestIdChains =>
-      assert.deepEqual(
-        new Set(requestIdChains), new Set(data.expectedChains)));
+function testGetCriticalChain(data) {
+  const mockData = mockTracingData(data.priorityList, data.edges);
+  const criticalChains = Gatherer.getCriticalChains(
+    mockData.networkRecords, mockData.graph);
+  // It is sufficient to only check the requestIds are correct in the chain
+  const requestIdChains = criticalChains.map(chain =>
+    chain.map(node => node.requestId));
+  // Ordering of the chains do not matter
+  assert.deepEqual(new Set(requestIdChains), new Set(data.expectedChains));
 }
 
 const HIGH = 'High';
@@ -54,72 +57,72 @@ const LOW = 'Low';
 const VERY_Low = 'VeryLow';
 
 /* global describe, it*/
-describe('Performance: overdependent-critical-resources audit', () => {
+describe('CriticalNetworkChain gatherer: getCriticalChain function', () => {
   it('returns correct data for chain of four critical requests', () =>
-    testAudit({
+    testGetCriticalChain({
       priorityList: [HIGH, MEDIUM, VERY_HIGH, HIGH],
       edges: [[0, 1], [1, 2], [2, 3]],
       expectedChains: [[0, 1, 2, 3]]
     }));
 
   it('returns correct data for chain interleaved with non-critical requests',
-    () => testAudit({
+    () => testGetCriticalChain({
       priorityList: [MEDIUM, HIGH, LOW, MEDIUM, HIGH],
       edges: [[0, 1], [1, 2], [2, 3], [3, 4]],
       expectedChains: [[0, 1], [3, 4]]
     }));
 
   it('returns correct data for two parallel chains', () =>
-    testAudit({
+    testGetCriticalChain({
       priorityList: [HIGH, HIGH, HIGH, HIGH],
       edges: [[0, 2], [1, 3]],
       expectedChains: [[1, 3], [0, 2]]
     }));
 
   it('returns correct data for two parallel chains', () =>
-    testAudit({
+    testGetCriticalChain({
       priorityList: [HIGH, HIGH, HIGH, HIGH],
       edges: [[0, 2], [1, 3]],
       expectedChains: [[0, 2], [1, 3]]
     }));
 
   it('returns correct data for fork at root', () =>
-    testAudit({
+    testGetCriticalChain({
       priorityList: [HIGH, HIGH, HIGH],
       edges: [[0, 1], [0, 2]],
       expectedChains: [[0, 1], [0, 2]]
     }))
 
   it('returns correct data for fork at non root', () =>
-    testAudit({
+    testGetCriticalChain({
       priorityList: [HIGH, HIGH, HIGH, HIGH],
       edges: [[0, 1], [1, 2], [1, 3]],
       expectedChains: [[0, 1, 2], [0, 1, 3]]
     }));
 
   it('returns empty chain list when no critical request', () =>
-    testAudit({
+    testGetCriticalChain({
       priorityList: [LOW, LOW],
       edges: [[0, 1]],
       expectedChains: []
     }));
 
   it('returns empty chain list when no request whatsoever', () =>
-    testAudit({
+    testGetCriticalChain({
       priorityList: [],
       edges: [],
       expectedChains: []
     }));
 
   it('returns two single node chains for two independent requests', () =>
-    testAudit({
+    testGetCriticalChain({
       priorityList: [HIGH, HIGH],
       edges: [],
       expectedChains: [[0], [1]]
     }));
 
   it('returns correct data on a random big graph', () =>
-    testAudit({
+    testGetCriticalChain({
       priorityList: Array(9).fill(HIGH),
       edges: [[0, 1], [1, 2], [1, 3], [4, 5], [5,7], [7, 8], [5, 6]],
       expectedChains: [

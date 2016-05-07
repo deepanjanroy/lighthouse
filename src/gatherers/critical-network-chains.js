@@ -59,21 +59,29 @@ class CriticalNetworkChains extends Gather {
     const chains = this.getCriticalChains(tracingData.networkRecords, graph);
 
     // There logs are here so we can test this gatherer
-    // Will be removed when we can a way to surface them in the report
+    // Will be removed when we have a way to surface them in the report
     const urlChains = chains.map(chain => chain.map(request => request._url));
-    const debuggingData = chains.map(chain => ({
+    const nonTrivialChains = chains.filter(chain => chain.length > 1);
+
+    // Note: Approximately,
+    // startTime: time when request was dispatched
+    // responseReceivedTime: either time to first byte, or time of receiving
+    //  the end of response headers
+    // endTime: time when response loading finished
+    const debuggingData = nonTrivialChains.map(chain => ({
       urls: chain.map(request => request._url),
       totalRequests: chain.length,
       times: chain.map(request => ({
         startTime: request._startTime,
         endTime: request._endTime,
-        responseReceivedTime: request.responseReceivedTime
+        responseReceivedTime: request._responseReceivedTime
       })),
-      // TODO: what happens with long polling? is endTime infinite?
-      totalTimeSpent: chain.reduce(
-        (sum, req) => sum + (req._endTime - req._startTime), 0)
+      totalTimeBetweenBeginAndEnd:
+        (chain[chain.length - 1]._endTime - chain[0]._startTime),
+      totalLoadingTime: chain.reduce((acc, req) =>
+        acc + (req._endTime - req._responseReceivedTime), 0)
     }));
-    log.log('info', JSON.stringify(debuggingData));
+    log.log('info', 'cricitalChains', JSON.stringify(debuggingData));
     return {CriticalNetworkChains: chains};
   }
 
@@ -142,12 +150,16 @@ class CriticalNetworkChains extends Gather {
     // These will go away once we implement initiator graph ourselves
     this._saveClovisData(url, tracingData, clovisDataFilename);
     child_process.execSync('python scripts/process_artifacts.py');
-    child_process.execSync('python scripts/netdep_graph_json.py');
+    child_process.execSync('python scripts/netdep_graph_json.py', {stdio: [0, 1, 2]});
     const depGraphString = fs.readFileSync(clovisGraphFilename);
 
-    // TODO: make sure non existent files do not bring whole lighthouse down
-    fs.unlinkSync(clovisDataFilename);
-    fs.unlinkSync(clovisGraphFilename);
+    try {
+      fs.unlinkSync(clovisDataFilename);
+      fs.unlinkSync(clovisGraphFilename);
+    } catch(e) {
+      console.error(e);
+      // Should not halt lighthouse for a file delete error
+    }
 
     return JSON.parse(depGraphString).graph;
   }

@@ -78,6 +78,7 @@ module.exports = function(driver, opts) {
   }
 
   const gatherers = gathererClasses.map(G => new G());
+
   if (opts.flags.useNetDepGraph) {
     const criticalChainClass = require('./gatherers/critical-network-chains');
     gatherers.push(new criticalChainClass());

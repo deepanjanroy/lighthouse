@@ -35,8 +35,14 @@ def create_tracing_track(trace_events):
             or event['cat'] == '__metadata']}
 
 def create_page_track(frame_load_events):
-  events = [{'frame_id': e['frameId'], 'method': e['method']}
-            for e in frame_load_events]
+  events = []
+  for e in frame_load_events:
+    clovis_event = {
+      'frame_id': e['frameId'],
+      'method': e['method'],
+      'parent_frame_id': e.get('parentFrameId', None)
+    }
+    events.append(clovis_event)
   return {'events': events}
 
 def create_request_track(raw_network_events):
