@@ -114,7 +114,6 @@ function run(gatherers, options) {
   const driver = options.driver;
   const tracingData = {};
 
-
   if (options.url === undefined || options.url === null) {
     throw new Error('You must provide a url to scheduler');
   }

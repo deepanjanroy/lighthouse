@@ -14,7 +14,6 @@
 
 import os
 import sys
-import pdb, traceback, sys
 
 if 'CHROMIUM_SOURCE_PATH' not in os.environ:
   print 'You must set the environment variable CHROMIUM_SOURCE_PATH'
@@ -45,12 +44,7 @@ def get_network_dependency_graph(json_dict):
 
 def main():
   with open('clovis-trace.log') as f:
-    try:
-      graph = get_network_dependency_graph(json.load(f))
-    except:
-      type, value, tb = sys.exc_info()
-      traceback.print_exc()
-      pdb.post_mortem(tb)
+    graph = get_network_dependency_graph(json.load(f))
 
 
   output_file = "dependency-graph.json"

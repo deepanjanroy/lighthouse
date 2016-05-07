@@ -22,13 +22,15 @@ const Gatherer = new GathererClass();
 
 function mockTracingData(prioritiesList, edges) {
   const networkRecords = prioritiesList.map((priority, index) =>
-      ({_requestId: index, _initialPriority: priority}));
+      ({requestId: index, initialPriority: priority}));
 
+  /* eslint-disable camelcase */
   const nodes = networkRecords.map(record =>
     ({request: {request_id: record._requestId}}));
 
   const graphEdges = edges.map(edge =>
     ({__from_node_index: edge[0], __to_node_index: edge[1]}));
+  /* eslint-enable camelcase */
 
   return {
     networkRecords: networkRecords,
@@ -54,7 +56,7 @@ const HIGH = 'High';
 const VERY_HIGH = 'VeryHigh';
 const MEDIUM = 'Medium';
 const LOW = 'Low';
-const VERY_Low = 'VeryLow';
+const VERY_LOW = 'VeryLow';
 
 /* global describe, it*/
 describe('CriticalNetworkChain gatherer: getCriticalChain function', () => {
@@ -67,7 +69,7 @@ describe('CriticalNetworkChain gatherer: getCriticalChain function', () => {
 
   it('returns correct data for chain interleaved with non-critical requests',
     () => testGetCriticalChain({
-      priorityList: [MEDIUM, HIGH, LOW, MEDIUM, HIGH],
+      priorityList: [MEDIUM, HIGH, LOW, MEDIUM, HIGH, VERY_LOW],
       edges: [[0, 1], [1, 2], [2, 3], [3, 4]],
       expectedChains: [[0, 1], [3, 4]]
     }));
@@ -91,7 +93,7 @@ describe('CriticalNetworkChain gatherer: getCriticalChain function', () => {
       priorityList: [HIGH, HIGH, HIGH],
       edges: [[0, 1], [0, 2]],
       expectedChains: [[0, 1], [0, 2]]
-    }))
+    }));
 
   it('returns correct data for fork at non root', () =>
     testGetCriticalChain({
@@ -124,7 +126,7 @@ describe('CriticalNetworkChain gatherer: getCriticalChain function', () => {
   it('returns correct data on a random big graph', () =>
     testGetCriticalChain({
       priorityList: Array(9).fill(HIGH),
-      edges: [[0, 1], [1, 2], [1, 3], [4, 5], [5,7], [7, 8], [5, 6]],
+      edges: [[0, 1], [1, 2], [1, 3], [4, 5], [5, 7], [7, 8], [5, 6]],
       expectedChains: [
         [0, 1, 2], [0, 1, 3], [4, 5, 7, 8], [4, 5, 6]
       ]}));

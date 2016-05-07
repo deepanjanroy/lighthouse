@@ -18,7 +18,7 @@
 'use strict';
 
 const Gather = require('./gather');
-const child_process = require('child_process');
+const childProcess = require('child_process');
 const fs = require('fs');
 const log = require('../lib/log.js');
 
@@ -27,11 +27,11 @@ const contains = (arr, elm) => arr.indexOf(elm) > -1;
 
 class Node {
   get requestId() {
-    return this.request._requestId;
+    return this.request.requestId;
   }
   constructor(request, parent) {
     this.children = [];
-    this.parent = null;
+    this.parent = parent;
     this.request = request;
   }
 
@@ -43,9 +43,6 @@ class Node {
     this.children.push(childNode);
   }
 
-  toJSON() {
-    return "{requestId: " + this.requestId + ", parent: " + (this.parent && this.parent.requestId) + "}";
-  }
 }
 
 class CriticalNetworkChains extends Gather {
@@ -60,7 +57,6 @@ class CriticalNetworkChains extends Gather {
 
     // There logs are here so we can test this gatherer
     // Will be removed when we have a way to surface them in the report
-    const urlChains = chains.map(chain => chain.map(request => request._url));
     const nonTrivialChains = chains.filter(chain => chain.length > 1);
 
     // Note: Approximately,
@@ -72,14 +68,14 @@ class CriticalNetworkChains extends Gather {
       urls: chain.map(request => request._url),
       totalRequests: chain.length,
       times: chain.map(request => ({
-        startTime: request._startTime,
-        endTime: request._endTime,
-        responseReceivedTime: request._responseReceivedTime
+        startTime: request.startTime,
+        endTime: request.endTime,
+        responseReceivedTime: request.responseReceivedTime
       })),
       totalTimeBetweenBeginAndEnd:
-        (chain[chain.length - 1]._endTime - chain[0]._startTime),
+        (chain[chain.length - 1].endTime - chain[0].startTime),
       totalLoadingTime: chain.reduce((acc, req) =>
-        acc + (req._endTime - req._responseReceivedTime), 0)
+        acc + (req.endTime - req.responseReceivedTime), 0)
     }));
     log.log('info', 'cricitalChains', JSON.stringify(debuggingData));
     return {CriticalNetworkChains: chains};
@@ -126,11 +122,11 @@ class CriticalNetworkChains extends Gather {
   _getChainsDFS(startNode) {
     if (startNode.children.length === 0) {
       return [[startNode]];
-    } else {
-      const childrenChains = flatten(startNode.children.map(child =>
-        this._getChainsDFS(child)));
-      return childrenChains.map(chain => [startNode].concat(chain));
     }
+
+    const childrenChains = flatten(startNode.children.map(child =>
+      this._getChainsDFS(child)));
+    return childrenChains.map(chain => [startNode].concat(chain));
   }
 
   _saveClovisData(url, tracingData, filename) {
@@ -144,19 +140,19 @@ class CriticalNetworkChains extends Gather {
   }
 
   _getNetworkDependencyGraph(url, tracingData) {
-    const clovisDataFilename = "clovisData.json";
-    const clovisGraphFilename = "dependency-graph.json";
+    const clovisDataFilename = 'clovisData.json';
+    const clovisGraphFilename = 'dependency-graph.json';
 
     // These will go away once we implement initiator graph ourselves
     this._saveClovisData(url, tracingData, clovisDataFilename);
-    child_process.execSync('python scripts/process_artifacts.py');
-    child_process.execSync('python scripts/netdep_graph_json.py', {stdio: [0, 1, 2]});
+    childProcess.execSync('python scripts/process_artifacts.py');
+    childProcess.execSync('python scripts/netdep_graph_json.py', {stdio: [0, 1, 2]});
     const depGraphString = fs.readFileSync(clovisGraphFilename);
 
     try {
       fs.unlinkSync(clovisDataFilename);
       fs.unlinkSync(clovisGraphFilename);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
       // Should not halt lighthouse for a file delete error
     }
