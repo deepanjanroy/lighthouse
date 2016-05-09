@@ -154,7 +154,7 @@ function run(gatherers, options) {
           {traceContents: tracingData.traceContents},
           {frameLoadEvents: tracingData.frameLoadEvents});
 
-      let artifacts = flattenArtifacts(unflattenedArtifacts);
+      const artifacts = flattenArtifacts(unflattenedArtifacts);
 
       if (options.flags.saveArtifacts) {
         saveArtifacts(artifacts);

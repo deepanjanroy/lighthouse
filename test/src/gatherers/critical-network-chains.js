@@ -81,13 +81,6 @@ describe('CriticalNetworkChain gatherer: getCriticalChain function', () => {
       expectedChains: [[1, 3], [0, 2]]
     }));
 
-  it('returns correct data for two parallel chains', () =>
-    testGetCriticalChain({
-      priorityList: [HIGH, HIGH, HIGH, HIGH],
-      edges: [[0, 2], [1, 3]],
-      expectedChains: [[0, 2], [1, 3]]
-    }));
-
   it('returns correct data for fork at root', () =>
     testGetCriticalChain({
       priorityList: [HIGH, HIGH, HIGH],
