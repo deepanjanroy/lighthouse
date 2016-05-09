@@ -48,6 +48,10 @@ class Node {
 class CriticalNetworkChains extends Gather {
 
   get criticalPriorities() {
+    // For now, critical request == render blocking request (as decided by
+    // blink). Blink treats requests with the following priority levels as
+    // render blocking.
+    // See https://docs.google.com/document/d/1bCDuq9H1ih9iNjgzyAL0gpwNFiEP4TZS-YLRp_RuMlc
     return ['VeryHigh', 'High', 'Medium'];
   }
 
