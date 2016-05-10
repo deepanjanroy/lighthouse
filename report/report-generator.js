@@ -18,11 +18,12 @@
 
 /* global Intl */
 
+const Formatter = require('../formatters/formatter');
 const Handlebars = require('handlebars');
 const fs = require('fs');
 const path = require('path');
 
-class Report {
+class ReportGenerator {
 
   constructor() {
     Handlebars.registerHelper('generated', _ => {
@@ -90,26 +91,46 @@ class Report {
     return fs.readFileSync(path.join(__dirname, './styles/report.css'), 'utf8');
   }
 
-  getReportJS() {
-    return fs.readFileSync(path.join(__dirname, './scripts/report.js'), 'utf8');
+  getReportJS(inline) {
+    // If this is for the extension we won't be able to run JS inline to the page so we will
+    // return a path to a JS file that will be copied in from ./scripts/report.js by gulp.
+    if (inline) {
+      const reportScript =
+          fs.readFileSync(path.join(__dirname, './scripts/lighthouse-report.js'), 'utf8');
+      return `<script>${reportScript}</script>`;
+    }
+    return '<script src="/pages/scripts/lighthouse-report.js"></script>';
   }
 
-  generateHTML(results) {
+  generateHTML(results, options) {
+    const inline = (options && options.inline) || false;
     const totalScore =
         (results.aggregations.reduce((prev, aggregation) => {
           return prev + aggregation.score.overall;
         }, 0) /
         results.aggregations.length);
 
+    // Ensure the formatter for each extendedInfo is registered.
+    results.aggregations.forEach(aggregation => {
+      aggregation.score.subItems.forEach(subItem => {
+        if (!subItem.extendedInfo) {
+          return;
+        }
+
+        const formatter = Formatter.getByName(subItem.extendedInfo.formatter).getFormatter('html');
+        Handlebars.registerPartial(subItem.name, formatter);
+      });
+    });
+
     const template = Handlebars.compile(this.getReportHTML());
     return template({
       url: results.url,
       totalScore: Math.round(totalScore * 100),
-      css: this.getReportCSS(),
-      script: this.getReportJS(),
+      css: this.getReportCSS(inline),
+      script: this.getReportJS(inline),
       aggregations: results.aggregations
     });
   }
 }
 
-module.exports = Report;
+module.exports = ReportGenerator;
