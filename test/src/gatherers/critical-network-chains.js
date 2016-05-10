@@ -22,29 +22,20 @@ const Gatherer = new GathererClass();
 
 function mockTracingData(prioritiesList, edges) {
   const networkRecords = prioritiesList.map((priority, index) =>
-      ({requestId: index, initialPriority: priority}));
+      ({requestId: index,
+        initialPriority: () => priority,
+        initiatorRequest: () => null}));
 
-  /* eslint-disable camelcase */
-  const nodes = networkRecords.map(record =>
-    ({request: {request_id: record._requestId}}));
+  for (let edge of edges) {
+    networkRecords[edge[1]].initiatorRequest = () => {requestId: edge[0]}
+  }
 
-  const graphEdges = edges.map(edge =>
-    ({__from_node_index: edge[0], __to_node_index: edge[1]}));
-  /* eslint-enable camelcase */
-
-  return {
-    networkRecords: networkRecords,
-    graph: {
-      nodes: nodes,
-      edges: graphEdges
-    }
-  };
+  return networkRecords;
 }
 
 function testGetCriticalChain(data) {
-  const mockData = mockTracingData(data.priorityList, data.edges);
-  const criticalChains = Gatherer.getCriticalChains(
-    mockData.networkRecords, mockData.graph);
+  const mockNetworkRecords = mockTracingData(data.priorityList, data.edges);
+  const criticalChains = Gatherer.getCriticalChains(mockNetworkRecords);
   // It is sufficient to only check the requestIds are correct in the chain
   const requestIdChains = criticalChains.map(chain =>
     chain.map(node => node.requestId));
