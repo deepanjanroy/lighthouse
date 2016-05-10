@@ -204,28 +204,19 @@ WebInspector.ConsoleMessage.MessageType = {
 
 // Mock NetworkLog
 WebInspector.NetworkLog = function(target) {
-  this._requests = [];
+  this._requests = new Map();
   target.networkManager.addEventListener(
     WebInspector.NetworkManager.EventTypes.RequestStarted, this._onRequestStarted, this);
 };
 
 WebInspector.NetworkLog.prototype = {
-  requests: function() {
-    return this._requests;
-  },
-
   requestForURL: function(url) {
-    for (var i = 0; i < this._requests.length; ++i) {
-      if (this._requests[i].url === url) {
-        return this._requests[i];
-      }
-    }
-    return null;
+    return this._requests.get(url) || null;
   },
 
   _onRequestStarted: function(event) {
-    var request = (event.data);
-    this._requests.push(request);
+    var request = event.data;
+    this._requests.set(request.url, request);
   }
 };
 
