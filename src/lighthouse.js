@@ -30,7 +30,8 @@ const gathererClasses = [
   require('./gatherers/html'),
   require('./gatherers/manifest'),
   require('./gatherers/accessibility'),
-  require('./gatherers/offline')
+  require('./gatherers/offline'),
+  require('./gatherers/critical-network-chains')
 ];
 
 const audits = [
@@ -78,11 +79,6 @@ module.exports = function(driver, opts) {
   }
 
   const gatherers = gathererClasses.map(G => new G());
-
-  if (opts.flags.useNetDepGraph) {
-    const CriticalChainClass = require('./gatherers/critical-network-chains');
-    gatherers.push(new CriticalChainClass());
-  }
 
   return Scheduler
       .run(gatherers, Object.assign({}, opts, {driver}))

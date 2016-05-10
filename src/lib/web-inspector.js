@@ -94,8 +94,15 @@ global.NetworkAgent = {
     Origin: 'origin',
     Inspector: 'inspector',
     Other: 'other'
+  },
+  InitiatorType: {
+    Other: 'other',
+    Parser: 'parser',
+    Redirect: 'redirect',
+    Script: 'script'
   }
 };
+
 // Enum from SecurityState enum in protocol's Security domain
 global.SecurityAgent = {
   SecurityState: {
@@ -165,6 +172,7 @@ require('chrome-devtools-frontend/front_end/timeline/TimelineProfileTree.js');
 require('chrome-devtools-frontend/front_end/components_lazy/FilmStripModel.js');
 require('chrome-devtools-frontend/front_end/timeline/TimelineIRModel.js');
 require('chrome-devtools-frontend/front_end/timeline/TimelineFrameModel.js');
+// require('chrome-devtools-frontend/front_end/sdk/NetworkLog.js');
 
 // DevTools makes a few assumptions about using backing storage to hold traces.
 WebInspector.DeferredTempFile = function() {};
@@ -195,6 +203,33 @@ WebInspector.ConsoleMessage.MessageType = {
   Log: 'log'
 };
 
+// Mock NetworkLog
+WebInspector.NetworkLog = function(target) {
+  this._requests = [];
+  target.networkManager.addEventListener(
+    WebInspector.NetworkManager.EventTypes.RequestStarted, this._onRequestStarted, this);
+};
+
+WebInspector.NetworkLog.prototype = {
+  requests: function() {
+    return this._requests;
+  },
+
+  requestForURL: function(url) {
+    for (var i = 0; i < this._requests.length; ++i) {
+      if (this._requests[i].url === url) {
+        return this._requests[i];
+      }
+    }
+    return null;
+  },
+
+  _onRequestStarted: function(event) {
+    var request = (event.data);
+    this._requests.push(request);
+  }
+};
+
 // Dependencies for color parsing.
 require('chrome-devtools-frontend/front_end/common/Color.js');
 
@@ -222,7 +257,10 @@ WebInspector.NetworkManager.createWithFakeTarget = function() {
     registerNetworkDispatcher() {}
   };
 
-  return new WebInspector.NetworkManager(fakeTarget);
+  fakeTarget.networkManager = new WebInspector.NetworkManager(fakeTarget);
+  fakeTarget.networkLog = new WebInspector.NetworkLog(fakeTarget);
+
+  return fakeTarget.networkManager;
 };
 
 module.exports = WebInspector;

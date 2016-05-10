@@ -18,8 +18,6 @@
 'use strict';
 
 const Gather = require('./gather');
-const childProcess = require('child_process');
-const fs = require('fs');
 const log = require('../lib/log.js');
 
 const flatten = arr => arr.reduce((a, b) => a.concat(b), []);
@@ -43,6 +41,15 @@ class Node {
     this.children.push(childNode);
   }
 
+  toJSON() {
+    // Prevents circular reference so we can print nodes when needed
+    return `{
+      id: ${this.requestId},
+      parent: ${!!(this.parent) && this.parent.requestId},
+      children: ${this.children.map(child => child.requestId)}
+    }`;
+  }
+
 }
 
 class CriticalNetworkChains extends Gather {
@@ -55,40 +62,11 @@ class CriticalNetworkChains extends Gather {
     return ['VeryHigh', 'High', 'Medium'];
   }
 
-  postProfiling(options, tracingData) {
-    const graph = this._getNetworkDependencyGraph(options.url, tracingData);
-    const chains = this.getCriticalChains(tracingData.networkRecords, graph);
-
-    // There logs are here so we can test this gatherer
-    // Will be removed when we have a way to surface them in the report
-    const nonTrivialChains = chains.filter(chain => chain.length > 1);
-
-    // Note: Approximately,
-    // startTime: time when request was dispatched
-    // responseReceivedTime: either time to first byte, or time of receiving
-    //  the end of response headers
-    // endTime: time when response loading finished
-    const debuggingData = nonTrivialChains.map(chain => ({
-      urls: chain.map(request => request._url),
-      totalRequests: chain.length,
-      times: chain.map(request => ({
-        startTime: request.startTime,
-        endTime: request.endTime,
-        responseReceivedTime: request.responseReceivedTime
-      })),
-      totalTimeBetweenBeginAndEnd:
-        (chain[chain.length - 1].endTime - chain[0].startTime),
-      totalLoadingTime: chain.reduce((acc, req) =>
-        acc + (req.endTime - req.responseReceivedTime), 0)
-    }));
-    log.log('info', 'cricitalChains', JSON.stringify(debuggingData));
-    return {CriticalNetworkChains: chains};
-  }
-
-  getCriticalChains(networkRecords, graph) {
-    // TODO: Should we also throw out requests after DOMContentLoaded?
-    const criticalRequests = networkRecords.filter(
-      req => contains(this.criticalPriorities, req._initialPriority));
+  getCriticalChains(networkRecords) {
+    // Drop the first request because it's uninteresting - it's the page html
+    // and always critical. No point including it in every request
+    const criticalRequests = networkRecords.slice(1).filter(
+      req => contains(this.criticalPriorities, req.initialPriority()));
 
     // Build a map of requestID -> Node.
     const requestIdToNodes = new Map();
@@ -97,20 +75,18 @@ class CriticalNetworkChains extends Gather {
       requestIdToNodes.set(requestNode.requestId, requestNode);
     }
 
-    // Connect the parents and children.
-    for (let edge of graph.edges) {
-      const fromNode = graph.nodes[edge.__from_node_index];
-      const toNode = graph.nodes[edge.__to_node_index];
-      const fromRequestId = fromNode.request.request_id;
-      const toRequestId = toNode.request.request_id;
-
-      if (requestIdToNodes.has(fromRequestId) &&
-          requestIdToNodes.has(toRequestId)) {
-        const fromRequestNode = requestIdToNodes.get(fromRequestId);
-        const toRequestNode = requestIdToNodes.get(toRequestId);
-
-        fromRequestNode.addChild(toRequestNode);
-        toRequestNode.setParent(fromRequestNode);
+    // Connect the parents and children
+    for (let request of criticalRequests) {
+      if (request.initiatorRequest()) {
+        const parentRequestId = request.initiatorRequest().requestId;
+        const childNode = requestIdToNodes.get(request.requestId);
+        const parentNode = requestIdToNodes.get(parentRequestId);
+        if (childNode && parentNode) {
+          // Both child and parent must be critical
+          // TODO: We may need handle redirects carefully. Investigate
+          childNode.setParent(parentNode);
+          parentNode.addChild(childNode);
+        }
       }
     }
 
@@ -123,6 +99,38 @@ class CriticalNetworkChains extends Gather {
     return requestChains;
   }
 
+  postProfiling(options, tracingData) {
+    const chains = this.getCriticalChains(tracingData.networkRecords);
+
+    if (options.flags.useNetDepGraph) {
+      // There logs are here so we can test this gatherer
+      // Will be removed when we have a way to surface them in the report
+      const nonTrivialChains = chains.filter(chain => chain.length > 1);
+
+      // Note: Approximately,
+      // startTime: time when request was dispatched
+      // responseReceivedTime: either time to first byte, or time of receiving
+      //  the end of response headers
+      // endTime: time when response loading finished
+      const debuggingData = nonTrivialChains.map(chain => ({
+        urls: chain.map(request => request._url),
+        totalRequests: chain.length,
+        times: chain.map(request => ({
+          startTime: request.startTime,
+          endTime: request.endTime,
+          responseReceivedTime: request.responseReceivedTime
+        })),
+        totalTimeBetweenBeginAndEnd:
+          (chain[chain.length - 1].endTime - chain[0].startTime),
+        totalLoadingTime: chain.reduce((acc, req) =>
+          acc + (req.endTime - req.responseReceivedTime), 0)
+      }));
+      log.log('info', 'cricital chains', JSON.stringify(debuggingData));
+      log.log('info', 'lengths of critical chains', debuggingData.map(d => d.totalRequests));
+    }
+    return {CriticalNetworkChains: chains};
+  }
+
   _getChainsDFS(startNode) {
     if (startNode.children.length === 0) {
       return [[startNode]];
@@ -131,37 +139,6 @@ class CriticalNetworkChains extends Gather {
     const childrenChains = flatten(startNode.children.map(child =>
       this._getChainsDFS(child)));
     return childrenChains.map(chain => [startNode].concat(chain));
-  }
-
-  _saveClovisData(url, tracingData, filename) {
-    const clovisData = {
-      url: url,
-      traceContents: tracingData.traceContents,
-      frameLoadEvents: tracingData.frameLoadEvents,
-      rawNetworkEvents: tracingData.rawNetworkEvents
-    };
-    fs.writeFileSync(filename, JSON.stringify(clovisData));
-  }
-
-  _getNetworkDependencyGraph(url, tracingData) {
-    const clovisDataFilename = 'clovisData.json';
-    const clovisGraphFilename = 'dependency-graph.json';
-
-    // These will go away once we implement initiator graph ourselves
-    this._saveClovisData(url, tracingData, clovisDataFilename);
-    childProcess.execSync('python scripts/process_artifacts.py');
-    childProcess.execSync('python scripts/netdep_graph_json.py', {stdio: [0, 1, 2]});
-    const depGraphString = fs.readFileSync(clovisGraphFilename);
-
-    try {
-      fs.unlinkSync(clovisDataFilename);
-      fs.unlinkSync(clovisGraphFilename);
-    } catch (e) {
-      console.error(e);
-      // Should not halt lighthouse for a file delete error
-    }
-
-    return JSON.parse(depGraphString).graph;
   }
 }
 
