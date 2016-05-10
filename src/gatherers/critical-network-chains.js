@@ -23,13 +23,17 @@ const log = require('../lib/log.js');
 const flatten = arr => arr.reduce((a, b) => a.concat(b), []);
 const includes = (arr, elm) => arr.indexOf(elm) > -1;
 
-class Node {
+class RequestNode {
   get requestId() {
     return this.request.requestId;
   }
+
   constructor(request, parent) {
+    // The children of a RequestNode are the requests initiated by it
     this.children = [];
+    // The parent of a RequestNode is the request that initiated it
     this.parent = parent;
+
     this.request = request;
   }
 
@@ -45,8 +49,8 @@ class Node {
     // Prevents circular reference so we can print nodes when needed
     return `{
       id: ${this.requestId},
-      parent: ${!!(this.parent) && this.parent.requestId},
-      children: ${this.children.map(child => child.requestId)}
+      parent: ${this.parent ? this.parent.requestId : null},
+      children: ${JSON.stringify(this.children.map(child => child.requestId))}
     }`;
   }
 
@@ -71,7 +75,7 @@ class CriticalNetworkChains extends Gather {
     // Build a map of requestID -> Node.
     const requestIdToNodes = new Map();
     for (let request of criticalRequests) {
-      const requestNode = new Node(request, null);
+      const requestNode = new RequestNode(request, null);
       requestIdToNodes.set(requestNode.requestId, requestNode);
     }
 
