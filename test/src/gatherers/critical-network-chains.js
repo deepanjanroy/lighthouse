@@ -26,9 +26,10 @@ function mockTracingData(prioritiesList, edges) {
         initialPriority: () => priority,
         initiatorRequest: () => null}));
 
-  for (let edge of edges) {
-    networkRecords[edge[1]].initiatorRequest = () => {requestId: edge[0]}
-  }
+  // add mock initiator information
+  edges.forEach(edge => {
+    networkRecords[edge[1]].initiatorRequest = () => ({requestId: edge[0]});
+  });
 
   return networkRecords;
 }
