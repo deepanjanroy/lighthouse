@@ -21,7 +21,7 @@ const Gather = require('./gather');
 const log = require('../lib/log.js');
 
 const flatten = arr => arr.reduce((a, b) => a.concat(b), []);
-const contains = (arr, elm) => arr.indexOf(elm) > -1;
+const includes = (arr, elm) => arr.indexOf(elm) > -1;
 
 class Node {
   get requestId() {
@@ -66,7 +66,7 @@ class CriticalNetworkChains extends Gather {
     // Drop the first request because it's uninteresting - it's the page html
     // and always critical. No point including it in every request
     const criticalRequests = networkRecords.slice(1).filter(
-      req => contains(this.criticalPriorities, req.initialPriority()));
+      req => includes(this.criticalPriorities, req.initialPriority()));
 
     // Build a map of requestID -> Node.
     const requestIdToNodes = new Map();
