@@ -172,7 +172,6 @@ require('chrome-devtools-frontend/front_end/timeline/TimelineProfileTree.js');
 require('chrome-devtools-frontend/front_end/components_lazy/FilmStripModel.js');
 require('chrome-devtools-frontend/front_end/timeline/TimelineIRModel.js');
 require('chrome-devtools-frontend/front_end/timeline/TimelineFrameModel.js');
-// require('chrome-devtools-frontend/front_end/sdk/NetworkLog.js');
 
 // DevTools makes a few assumptions about using backing storage to hold traces.
 WebInspector.DeferredTempFile = function() {};
