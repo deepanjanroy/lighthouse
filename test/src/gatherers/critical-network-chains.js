@@ -64,6 +64,12 @@ function deepEqualSet(set1, set2) {
   return true;
 }
 
+const HIGH = 'High';
+const VERY_HIGH = 'VeryHigh';
+const MEDIUM = 'Medium';
+const LOW = 'Low';
+const VERY_LOW = 'VeryLow';
+
 function mockTracingData(prioritiesList, edges) {
   const networkRecords = prioritiesList.map((priority, index) =>
       ({requestId: index,
@@ -94,13 +100,6 @@ function testGetCriticalChain(data) {
   // Ordering of the chains do not matter
   assert(deepEqualSet(new Set(requestIdChains), new Set(data.expectedChains)));
 }
-
-const HIGH = 'High';
-const VERY_HIGH = 'VeryHigh';
-const MEDIUM = 'Medium';
-const LOW = 'Low';
-const VERY_LOW = 'VeryLow';
-
 
 describe('CriticalNetworkChain gatherer: getCriticalChain function', () => {
   describe('Meta Testing: deepEqualSet', () => {
