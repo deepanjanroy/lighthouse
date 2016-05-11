@@ -20,14 +20,24 @@
 const Gather = require('./gather');
 const log = require('../lib/log.js');
 
+/**
+ * @param {!Array<Array<T>>} arr
+ * @return {!Array<T>}
+ */
 const flatten = arr => arr.reduce((a, b) => a.concat(b), []);
+
 const includes = (arr, elm) => arr.indexOf(elm) > -1;
 
 class RequestNode {
+  /** @return string */
   get requestId() {
     return this.request.requestId;
   }
 
+  /**
+   * @param {!NetworkRequest} request
+   * @param {RequestNode} parent
+   */
   constructor(request, parent) {
     // The children of a RequestNode are the requests initiated by it
     this.children = [];
@@ -57,7 +67,17 @@ class RequestNode {
 }
 
 class CriticalNetworkChains extends Gather {
+  /**
+   * A sequential chain of RequestNodes
+   * @typedef {!Array<RequestNode>} RequestNodeChain
+   */
 
+  /**
+   * A sequential chain of WebInspector.NetworkRequest
+   * @typedef {!Array<NetworkRequest>} NetworkRequestChain
+   */
+
+  /** @return {String} */
   get criticalPriorities() {
     // For now, critical request == render blocking request (as decided by
     // blink). Blink treats requests with the following priority levels as
@@ -66,15 +86,22 @@ class CriticalNetworkChains extends Gather {
     return ['VeryHigh', 'High', 'Medium'];
   }
 
+  /**
+   * @param {!Array<NetworkRequest>} networkRecords
+   * @return {!Array<NetworkRequestChain>}
+  */
   getCriticalChains(networkRecords) {
     // Drop the first request because it's uninteresting - it's the page html
     // and always critical. No point including it in every request
+    /** @type {!Array<NetworkRequest>} */
     const criticalRequests = networkRecords.slice(1).filter(
       req => includes(this.criticalPriorities, req.initialPriority()));
 
     // Build a map of requestID -> Node.
+    /** @type {!Map<string, RequestNode} */
     const requestIdToNodes = new Map();
     for (let request of criticalRequests) {
+      /** @type {RequestNode} */
       const requestNode = new RequestNode(request, null);
       requestIdToNodes.set(requestNode.requestId, requestNode);
     }
@@ -82,8 +109,11 @@ class CriticalNetworkChains extends Gather {
     // Connect the parents and children
     for (let request of criticalRequests) {
       if (request.initiatorRequest()) {
+        /** @type {!string} */
         const parentRequestId = request.initiatorRequest().requestId;
+        /** @type {?RequestNode} */
         const childNode = requestIdToNodes.get(request.requestId);
+        /** @type {?RequestNode} */
         const parentNode = requestIdToNodes.get(parentRequestId);
         if (childNode && parentNode) {
           // Both child and parent must be critical
@@ -94,10 +124,15 @@ class CriticalNetworkChains extends Gather {
       }
     }
 
+    /** @type {!Array<RequestNode>} */
     const nodesList = [...requestIdToNodes.values()];
+    /** @type {!Array<RequestNode>} */
     const orphanNodes = nodesList.filter(node => node.parent === null);
-    const nodeChains = flatten(orphanNodes.map(
-      node => this._getChainsDFS(node)));
+    /** @type {!Array<Array<RequestNodeChain>>} */
+    const orphanNodeChains = orphanNodes.map(node => this._getChainsDFS(node));
+    /** @type {!Array<RequestNodeChain>} */
+    const nodeChains = flatten(orphanNodeChains);
+    /** @type {!Array<NetworkRequestChain>} */
     const requestChains = nodeChains.map(chain => chain.map(
       node => node.request));
     return requestChains;
@@ -132,9 +167,13 @@ class CriticalNetworkChains extends Gather {
       log.log('info', 'cricital chains', JSON.stringify(debuggingData));
       log.log('info', 'lengths of critical chains', debuggingData.map(d => d.totalRequests));
     }
-    return {CriticalNetworkChains: chains};
+    this.artifacts = {CriticalNetworkChains: chains};
   }
 
+  /**
+   * @param {!RequestNode} startNode
+   * @return {!Array<RequestNodeChain>}
+   */
   _getChainsDFS(startNode) {
     if (startNode.children.length === 0) {
       return [[startNode]];
