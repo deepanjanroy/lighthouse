@@ -160,13 +160,15 @@ class CriticalNetworkChains extends Gather {
           responseReceivedTime: request.responseReceivedTime
         })),
         totalTimeBetweenBeginAndEnd:
-          (chain[chain.length - 1].endTime - chain[0].startTime),
-        totalLoadingTime: chain.reduce((acc, req) =>
-          acc + (req.endTime - req.responseReceivedTime), 0)
-      }));
+          (chain[chain.length - 1].endTime - chain[0].startTime) * 1000,
+        totalLoadingTime: (chain.reduce((acc, req) =>
+          acc + (req.endTime - req.responseReceivedTime), 0)) * 1000
+      })).sort((a, b) =>
+        b.totalTimeBetweenBeginAndEnd - a.totalTimeBetweenBeginAndEnd);
       log.log('info', 'cricital chains', JSON.stringify(debuggingData));
       log.log('info', 'lengths of critical chains', debuggingData.map(d => d.totalRequests));
     }
+
     this.artifacts = {CriticalNetworkChains: chains};
   }
 
