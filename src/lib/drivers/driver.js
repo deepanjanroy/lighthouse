@@ -36,7 +36,7 @@ class DriverBase {
       'disabled-by-default-devtools.timeline',
       'disabled-by-default-devtools.timeline.frame',
       'disabled-by-default-devtools.timeline.stack',
-      'disabled-by-default-devtools.screenshot',
+      'disabled-by-default-devtools.screenshot'
     ];
   }
 

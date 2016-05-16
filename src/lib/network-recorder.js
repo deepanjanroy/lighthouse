@@ -21,7 +21,7 @@ const NetworkManager = require('./web-inspector').NetworkManager;
 const REQUEST_FINISHED = NetworkManager.EventTypes.RequestFinished;
 
 class NetworkRecorder {
-  constructor(recordArray, rawEventsArray) {
+  constructor(recordArray) {
     this._records = recordArray;
 
     this.networkManager = NetworkManager.createWithFakeTarget();
@@ -81,7 +81,8 @@ class NetworkRecorder {
         data.blockedReason);
   }
 
-  onResourceChangedPriority(data) {
+  onResourceChangedPriority() {
+    // TODO: Add call to dispatcher after devtools dependency is updated
   }
 }
 
