@@ -95,6 +95,17 @@ describe('Module Tests', function() {
     });
   });
 
+  it('should be able to save artifacts', function() {
+    // Prevent regression of github.com/GoogleChrome/lighthouse/issues/345
+    const lighthouse = require('../..');
+    return lighthouse(VALID_TEST_URL, {saveArtifacts: true})
+    .then(results => {
+      assert.ok(results);
+    }).then(_ => {
+      fs.unlinkSync('artifacts.log');
+    });
+  });
+
   it('should throw an error when the first parameter is not defined', function() {
     const lighthouse = require('../..');
     return lighthouse()
