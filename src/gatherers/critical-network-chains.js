@@ -19,62 +19,9 @@
 
 const Gather = require('./gather');
 
-/**
- * @param {!Array<Array<T>>} arr
- * @return {!Array<T>}
- */
-const flatten = arr => arr.reduce((a, b) => a.concat(b), []);
-
 const includes = (arr, elm) => arr.indexOf(elm) > -1;
 
-class RequestNode {
-  /** @return string */
-  get requestId() {
-    return this.request.requestId;
-  }
-
-  /**
-   * @param {!NetworkRequest} request
-   * @param {RequestNode} parent
-   */
-  constructor(request, parent) {
-    // The children of a RequestNode are the requests initiated by it
-    this.children = [];
-    // The parent of a RequestNode is the request that initiated it
-    this.parent = parent;
-
-    this.request = request;
-  }
-
-  setParent(parentNode) {
-    this.parent = parentNode;
-  }
-
-  addChild(childNode) {
-    this.children.push(childNode);
-  }
-
-  toJSON() {
-    // Prevents circular reference so we can print nodes when needed
-    return `{
-      id: ${this.requestId},
-      parent: ${this.parent ? this.parent.requestId : null},
-      children: ${JSON.stringify(this.children.map(child => child.requestId))}
-    }`;
-  }
-
-}
-
 class CriticalNetworkChains extends Gather {
-  /**
-   * A sequential chain of RequestNodes
-   * @typedef {!Array<RequestNode>} RequestNodeChain
-   */
-
-  /**
-   * A sequential chain of WebInspector.NetworkRequest
-   * @typedef {!Array<NetworkRequest>} NetworkRequestChain
-   */
 
   /** @return {String} */
   get criticalPriorities() {
@@ -85,106 +32,87 @@ class CriticalNetworkChains extends Gather {
     return ['VeryHigh', 'High', 'Medium'];
   }
 
-  /**
-   * @param {!Array<NetworkRequest>} networkRecords
-   * @return {!Array<NetworkRequestChain>}
-  */
-  getCriticalChains(networkRecords) {
-    // Drop the first request because it's uninteresting - it's the page html
-    // and always critical. No point including it in every request
+  postProfiling(options, tracingData) {
+    const networkRecords = tracingData.networkRecords;
+
+    // Get all the critical requests.
     /** @type {!Array<NetworkRequest>} */
-    const criticalRequests = networkRecords.slice(1).filter(
+    const criticalRequests = networkRecords.filter(
       req => includes(this.criticalPriorities, req.initialPriority()));
 
     // Build a map of requestID -> Node.
-    /** @type {!Map<string, RequestNode} */
-    const requestIdToNodes = new Map();
+    const requestIdToRequests = new Map();
     for (let request of criticalRequests) {
-      /** @type {RequestNode} */
-      const requestNode = new RequestNode(request, null);
-      requestIdToNodes.set(requestNode.requestId, requestNode);
+      requestIdToRequests.set(request.requestId, request);
     }
 
-    // Connect the parents and children
-    for (let request of criticalRequests) {
-      if (request.initiatorRequest()) {
-        /** @type {!string} */
-        const parentRequestId = request.initiatorRequest().requestId;
-        /** @type {?RequestNode} */
-        const childNode = requestIdToNodes.get(request.requestId);
-        /** @type {?RequestNode} */
-        const parentNode = requestIdToNodes.get(parentRequestId);
-        if (childNode && parentNode) {
-          // Both child and parent must be critical
-          // TODO: We may need handle redirects carefully. Investigate
-          childNode.setParent(parentNode);
-          parentNode.addChild(childNode);
-        }
-      }
-    }
-
-    /** @type {!Array<RequestNode>} */
-    const nodesList = [...requestIdToNodes.values()];
-    /** @type {!Array<RequestNode>} */
-    const orphanNodes = nodesList.filter(node => node.parent === null);
-    /** @type {!Array<Array<RequestNodeChain>>} */
-    const orphanNodeChains = orphanNodes.map(node => this._getChainsDFS(node));
-    /** @type {!Array<RequestNodeChain>} */
-    const nodeChains = flatten(orphanNodeChains);
-    /** @type {!Array<NetworkRequestChain>} */
-    const requestChains = nodeChains.map(chain => chain.map(
-      node => node.request));
-    return requestChains;
-  }
-
-  postProfiling(options, tracingData) {
-    const chains = this.getCriticalChains(tracingData.networkRecords);
-
-    let nonTrivialChains = chains.filter(chain => chain.length > 1);
-    nonTrivialChains = nonTrivialChains.map(chain => {
-      // Note: Approximately:
-      //  startTime: time when request was dispatched
-      //  responseReceivedTime: either time to first byte, or time of receiving
-      //    the end of response headers
-      //  endTime: time when response loading finished
-      const times = chain.map(request => ({
+    const flattenRequest = request => {
+      return {
+        url: request._url,
         startTime: request.startTime,
         endTime: request.endTime,
         responseReceivedTime: request.responseReceivedTime
-      }));
-      const urls = chain.map(request => request._url);
-      const totalChainDuration = (chain[chain.length - 1].endTime - chain[0].startTime) * 1000;
-
-      // calculate time spent downloading resopnses
-      function downloadTime(acc, req) {
-        return acc + (req.endTime - req.responseReceivedTime);
-      }
-      const chainDownloadingTime = chain.reduce(downloadTime, 0) * 1000;
-
-      return {
-        urls,
-        totalRequests: chain.length,
-        times,
-        totalChainDuration,
-        chainDownloadingTime
       };
-    }).sort((a, b) => b.totalChainDuration - a.totalChainDuration);
+    };
 
-    this.artifact = {criticalNetworkChains: nonTrivialChains};
-  }
+    // Create a tree of critical requests.
+    const criticalNetworkChains = {};
+    for (let request of criticalRequests) {
+      // Work back from this request up to the root. If by some weird quirk we are giving request D
+      // here, which has ancestors C, B and A (where A is the root), we will build array [C, B, A]
+      // during this phase.
+      const ancestors = [];
+      let ancestorRequest = request.initiatorRequest();
+      let node = criticalNetworkChains;
+      while (ancestorRequest) {
+        // If the parent request isn't a high priority request it won't be in the
+        // requestIdToRequests map, and so we can break the chain here.
+        // TODO(paullewis): Check that it's valid to break the chain.
+        const hasAncestorRequest = requestIdToRequests.has(ancestorRequest.requestId);
 
-  /**
-   * @param {!RequestNode} startNode
-   * @return {!Array<RequestNodeChain>}
-   */
-  _getChainsDFS(startNode) {
-    if (startNode.children.length === 0) {
-      return [[startNode]];
+        if (!hasAncestorRequest) {
+          // Set the ancestors to an empty array and unset node so that we don't add
+          // the request in to the tree.
+          ancestors.length = 0;
+          node = undefined;
+          break;
+        }
+        ancestors.push(ancestorRequest.requestId);
+        ancestorRequest = ancestorRequest.initiatorRequest();
+      }
+
+      // With the above array we can work from back to front, i.e. A, B, C, and during this process
+      // we can build out the tree for any nodes that have yet to be created.
+      let ancestor = ancestors.pop();
+      while (ancestor) {
+        const parentRequest = requestIdToRequests.get(ancestor);
+        const parentRequestId = parentRequest.requestId;
+        if (!node[parentRequestId]) {
+          node[parentRequestId] = {
+            request: flattenRequest(parentRequest),
+            children: {}
+          };
+        }
+
+        // Step to the next iteration.
+        ancestor = ancestors.pop();
+        node = node[parentRequestId].children;
+      }
+
+      if (!node) {
+        continue;
+      }
+
+      // node should now point to the immediate parent for this request.
+      node[request.requestId] = {
+        request: flattenRequest(request),
+        children: {}
+      };
     }
 
-    const childrenChains = flatten(startNode.children.map(child =>
-      this._getChainsDFS(child)));
-    return childrenChains.map(chain => [startNode].concat(chain));
+    this.artifact = {
+      criticalNetworkChains
+    };
   }
 }
 

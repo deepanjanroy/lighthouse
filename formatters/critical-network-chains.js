@@ -38,7 +38,7 @@ class CriticalNetworkChains extends Formatter {
 
           const output = `    - Longest request chain (shorter is better): ${longestChain}\n` +
           `    - Longest chain duration (shorter is better): ${longestDuration.toFixed(2)}ms\n` +
-          '    - Chains\n' +
+          '    - Initial navigation\n' +
               '      ' + urlTree.replace(/\n/g, '\n      ') + '\n';
           return output;
         };
@@ -52,56 +52,72 @@ class CriticalNetworkChains extends Formatter {
     }
   }
 
-  static _getLongestChainLength(info) {
-    return info.reduce((total, item) => {
-      if (item.totalRequests > total) {
-        return item.totalRequests;
+  static _traverse(tree, cb) {
+    function walk(node, depth, startTime) {
+      const children = Object.keys(node);
+      if (children.length === 0) {
+        return;
       }
 
-      return total;
-    }, 0);
-  }
-
-  static _getLongestChainDuration(info) {
-    return info.reduce((total, item) => {
-      if (item.totalChainDuration > total) {
-        return item.totalChainDuration;
-      }
-
-      return total;
-    }, 0);
-  }
-
-  /**
-   * Refactors the gatherer's request information into a tree.
-   */
-  static _createURLTree(info) {
-    return info.reduce((tree, item) => {
-      let node = tree;
-      item.urls.forEach((itemURL, index, arr) => {
-        if (!node[itemURL]) {
-          const isLastChild = (index === arr.length - 1);
-          node[itemURL] = isLastChild ? item.totalChainDuration : {};
+      children.forEach(id => {
+        const child = node[id];
+        if (!startTime) {
+          startTime = child.request.startTime;
         }
 
-        node = node[itemURL];
-      });
+        // Call the callback with the info for this child.
+        cb({
+          depth,
+          id,
+          node: child,
+          chainDuration: (child.request.endTime - startTime) * 1000
+        });
 
-      return tree;
-    }, {});
+        // Carry on walking.
+        walk(child.children, depth + 1, startTime);
+      }, '');
+    }
+
+    walk(tree, 0);
+  }
+
+  static _getLongestChainLength(tree) {
+    let longestChain = 0;
+    this._traverse(tree, opts => {
+      const depth = opts.depth;
+      if (depth > longestChain) {
+        longestChain = depth;
+      }
+    });
+
+    // Always return the longest chain + 1 because the depth is zero indexed.
+    return (longestChain + 1);
+  }
+
+  static _getLongestChainDuration(tree) {
+    let longestChainDuration = 0;
+    this._traverse(tree, opts => {
+      const duration = opts.chainDuration;
+      if (duration > longestChainDuration) {
+        longestChainDuration = duration;
+      }
+    });
+    return longestChainDuration;
   }
 
   /**
    * Converts the tree into an ASCII tree.
    */
-  static _createURLTreeOutput(info) {
-    const urlTree = CriticalNetworkChains._createURLTree(info);
+  static _createURLTreeOutput(tree) {
+    function write(opts) {
+      const node = opts.node;
+      const depth = opts.depth;
+      const treeMarkers = opts.treeMarkers;
+      let startTime = opts.startTime;
 
-    function write(node, depth, treeMarkers) {
-      return Object.keys(node).reduce((output, itemURL, currentIndex, arr) => {
+      return Object.keys(node).reduce((output, id, currentIndex, arr) => {
         // Test if this node has children, and if it's the last child.
-        const hasChildren = (typeof node[itemURL] === 'object') &&
-            Object.keys(node[itemURL]).length > 0;
+        const hasChildren = (Object.keys(node[id].children).length > 0);
         const isLastChild = (currentIndex === arr.length - 1);
 
         // If the parent is the last child then don't drop the vertical bar.
@@ -121,17 +137,33 @@ class CriticalNetworkChains extends Formatter {
             (isLastChild ? '┗━' : '┣━') +
             (hasChildren ? '┳' : '━');
 
-        const parsedURL = CriticalNetworkChains.parseURL(itemURL);
+        const parsedURL = CriticalNetworkChains.parseURL(node[id].request.url);
+
+        if (!startTime) {
+          startTime = node[id].request.startTime;
+        }
+
+        const duration = ((node[id].request.endTime - startTime) * 1000).toFixed(2);
 
         // Return the previous output plus this new node, and recursively write its children.
         return output + `${treeMarker} ${parsedURL.file} (${parsedURL.hostname})` +
             // If this node has children, write them out. Othewise write the chain time.
-            (hasChildren ? '' : ` - ${node[itemURL].toFixed(2)}ms`) + '\n' +
-            write(node[itemURL], depth + 1, newTreeMakers);
+            (hasChildren ? '' : ` - ${duration}ms`) + '\n' +
+            write({
+              node: node[id].children,
+              depth: depth + 1,
+              treeMarkers: newTreeMakers,
+              startTime
+            });
       }, '');
     }
 
-    return write(urlTree, 0, []);
+    return write({
+      node: tree,
+      depth: 0,
+      treeMarkers: [],
+      startTime: 0
+    });
   }
 
   static formatTime(time) {
@@ -139,13 +171,18 @@ class CriticalNetworkChains extends Formatter {
   }
 
   static parseURL(resourceURL, opts) {
+    const MAX_FILENAME_LENGTH = 64;
     const parsedResourceURL = url.parse(resourceURL);
-    const file = parsedResourceURL.path
+    const hostname = parsedResourceURL.hostname;
+    let file = parsedResourceURL.path
         // Remove any query strings.
         .replace(/\?.*/, '')
         // Grab the last two parts of the path.
         .split('/').slice(-2).join('/');
-    const hostname = parsedResourceURL.hostname;
+    if (file.length > MAX_FILENAME_LENGTH) {
+      file = file.slice(0, MAX_FILENAME_LENGTH) + '...';
+    }
+
     const parsedURL = {
       file,
       hostname
@@ -162,14 +199,6 @@ class CriticalNetworkChains extends Formatter {
 
   static getHelpers() {
     return {
-      createTreeStructure(info, opts) {
-        return opts.fn({parent: null, node: CriticalNetworkChains._createURLTree(info)});
-      },
-
-      chains(info) {
-        return info.length;
-      },
-
       longestChain(info) {
         return CriticalNetworkChains._getLongestChainLength(info);
       },
@@ -178,13 +207,13 @@ class CriticalNetworkChains extends Formatter {
         return CriticalNetworkChains._getLongestChainDuration(info);
       },
 
+      chainDuration(startTime, endTime) {
+        return ((endTime - startTime) * 1000).toFixed(2);
+      },
+
       parseURL: CriticalNetworkChains.parseURL,
 
       formatTime: CriticalNetworkChains.formatTime,
-
-      childCount(node) {
-        return Object.keys(node).length;
-      },
 
       /**
        * Helper function for Handlebars that creates the context for each node
@@ -192,10 +221,11 @@ class CriticalNetworkChains extends Formatter {
        * it has any children itself and what the tree looks like all the way back
        * up to the root, so the tree markers can be drawn correctly.
        */
-      createContextFor(parent, node, url, treeMarkers, parentIsLastChild, opts) {
-        const siblings = Object.keys(parent.node);
-        const isLastChild = siblings.indexOf(url) === (siblings.length - 1);
-        const hasChildren = Object.keys(node).length > 0;
+      createContextFor(parent, id, treeMarkers, parentIsLastChild, startTime, opts) {
+        const node = parent[id];
+        const siblings = Object.keys(parent);
+        const isLastChild = siblings.indexOf(id) === (siblings.length - 1);
+        const hasChildren = Object.keys(node.children).length > 0;
 
         // Copy the tree markers so that we don't change by reference.
         const newTreeMarkers = Array.isArray(treeMarkers) ? treeMarkers.slice(0) : [];
@@ -205,11 +235,15 @@ class CriticalNetworkChains extends Formatter {
           newTreeMarkers.push(!parentIsLastChild);
         }
 
+        if (!startTime) {
+          startTime = node.request.startTime;
+        }
+
         return opts.fn({
-          parent,
           node,
           isLastChild,
           hasChildren,
+          startTime,
           treeMarkers: newTreeMarkers
         });
       }

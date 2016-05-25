@@ -55,8 +55,26 @@ class CriticalNetworkChains extends Audit {
    * @return {!AuditResult} The score from the audit, ranging from 0-100.
    */
   static audit(artifacts) {
+    let chainCount = 0;
+    function walk(node, depth, startTime) {
+      const children = Object.keys(node);
+
+      // Since a leaf node indicates the end of a chain, we can inspect the number
+      // of child nodes, and, if the count is zero, increment the count.
+      if (children.length === 0) {
+        chainCount++;
+      }
+
+      children.forEach(id => {
+        const child = node[id];
+        walk(child.children, depth + 1, startTime);
+      }, '');
+    }
+
+    walk(artifacts.criticalNetworkChains, 0);
+
     return CriticalNetworkChains.generateAuditResult({
-      value: artifacts.criticalNetworkChains.length,
+      value: chainCount,
       optimalValue: this.optimalValue,
       extendedInfo: {
         formatter: Formatter.SUPPORTED_FORMATS.CRITICAL_NETWORK_CHAINS,

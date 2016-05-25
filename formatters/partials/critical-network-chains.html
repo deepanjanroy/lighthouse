@@ -1,48 +1,3 @@
-{{#*inline "writeNode"}}
-  <div class="cnc-node" title="{{ @key }}">
-    <span class="cnc-node__tree-marker">
-    {{#each treeMarkers as |separator| }}
-      {{#separator}}
-      <span class="tree-marker vert"></span>
-      <span class="tree-marker space"></span>
-      {{else}}
-      <span class="tree-marker space"></span>
-      <span class="tree-marker space"></span>
-      {{/separator}}
-    {{/each}}
-    {{#isLastChild}}
-      <span class="tree-marker up-right"></span>
-      <span class="tree-marker right"></span>
-    {{else}}
-      <span class="tree-marker vert-right"></span>
-      <span class="tree-marker right"></span>
-    {{/isLastChild}}
-
-    {{#hasChildren}}
-      <span class="tree-marker horiz-down"></span>
-    {{else}}
-      <span class="tree-marker right"></span>
-    {{/hasChildren}}
-    </span>
-
-    <span class="cnc-node__tree-value">
-      {{#parseURL @key }}
-        <span class="cnc-node__tree-file">{{ this.file }}</span>
-        <span class="cnc-node__tree-hostname">({{ this.hostname }})</span>
-      {{/parseURL}}
-      {{#unless hasChildren}}
-        - <span class="cnc-node__chain-duration">{{formatTime this.node }}ms</span>
-      {{/unless}}
-    </span>
-  </div>
-
-  {{#each this.node as |node|}}
-    {{#createContextFor .. node @key ../treeMarkers ../isLastChild }}
-      {{> writeNode this }}
-    {{/createContextFor }}
-  {{/each}}
-{{/inline}}
-
 <style>
 .tree-marker {
   width: 12px;
@@ -101,17 +56,61 @@
 }
 
 </style>
+
+{{#*inline "writeNode"}}
+  <div class="cnc-node" title="{{ @key }}">
+    <span class="cnc-node__tree-marker">
+    {{#each treeMarkers as |separator| }}
+      {{#separator}}
+      <span class="tree-marker vert"></span>
+      <span class="tree-marker space"></span>
+      {{else}}
+      <span class="tree-marker space"></span>
+      <span class="tree-marker space"></span>
+      {{/separator}}
+    {{/each}}
+    {{#isLastChild}}
+      <span class="tree-marker up-right"></span>
+      <span class="tree-marker right"></span>
+    {{else}}
+      <span class="tree-marker vert-right"></span>
+      <span class="tree-marker right"></span>
+    {{/isLastChild}}
+
+    {{#hasChildren}}
+      <span class="tree-marker horiz-down"></span>
+    {{else}}
+      <span class="tree-marker right"></span>
+    {{/hasChildren}}
+    </span>
+
+    <span class="cnc-node__tree-value">
+      {{#parseURL this.node.request.url }}
+        <span class="cnc-node__tree-file">{{ this.file }}</span>
+        <span class="cnc-node__tree-hostname">({{ this.hostname }})</span>
+      {{/parseURL}}
+      {{#unless hasChildren}}
+        - <span class="cnc-node__chain-duration">{{chainDuration startTime this.node.request.endTime }}ms</span>
+      {{/unless}}
+    </span>
+  </div>
+
+  {{#each this.node.children as |child| }}
+    {{#createContextFor ../node.children @key ../treeMarkers ../isLastChild ../startTime }}
+      {{> writeNode this }}
+    {{/createContextFor }}
+  {{/each}}
+{{/inline}}
+
 <div class="cnc-tree">
   <div>Longest request chain (shorter is better): <strong>{{longestChain this}}</strong></div>
   <div>Longest chain duration (shorter is better): <strong>{{formatTime (longestDuration this)}}ms</strong></div>
-  {{#createTreeStructure this}}
-    <div>
-      <div>Chains</div>
-      {{#each this.node as |node| }}
-        {{#createContextFor .. node @key undefined undefined }}
-          {{> writeNode this }}
-        {{/createContextFor}}
-      {{/each}}
-    </div>
-  {{/createTreeStructure}}
+  <div>
+    <div>Initial navigation</div>
+    {{#each this }}
+      {{#createContextFor .. @key undefined undefined undefined }}
+        {{> writeNode this }}
+      {{/createContextFor}}
+    {{/each}}
+  </div>
 </div>
