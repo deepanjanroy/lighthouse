@@ -18,6 +18,11 @@
 'use strict';
 
 class Formatter {
+
+  static get CAPITAL_LETTERS() {
+    return /([A-Z])/g;
+  }
+
   static get SUPPORTED_FORMATS() {
     // Get the available formatters if they don't already exist.
     if (!this._formatters) {
@@ -42,7 +47,9 @@ class Formatter {
   static _generateSupportedFormats() {
     const formatNames = Object.keys(this._formatters);
     this._supportedFormatsNames = formatNames.reduce((prev, format) => {
-      const formatName = format.replace(/([A-Z])/g, '_$1').toUpperCase();
+      // Reformulates names like criticalNetworkChains to CRITICAL_NETWORK_CHAINS so they appear
+      // like a bunch of constants.
+      const formatName = format.replace(Formatter.CAPITAL_LETTERS, '_$1').toUpperCase();
       prev[formatName] = format;
       return prev;
     }, {});
