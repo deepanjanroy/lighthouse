@@ -21,7 +21,7 @@ const Gather = require('./gather');
 
 const includes = (arr, elm) => arr.indexOf(elm) > -1;
 
-class CriticalNetworkChains extends Gather {
+class CriticalRequestChains extends Gather {
 
   /** @return {String} */
   get criticalPriorities() {
@@ -56,18 +56,17 @@ class CriticalNetworkChains extends Gather {
     };
 
     // Create a tree of critical requests.
-    const criticalNetworkChains = {};
+    const criticalRequestChains = {};
     for (let request of criticalRequests) {
       // Work back from this request up to the root. If by some weird quirk we are giving request D
       // here, which has ancestors C, B and A (where A is the root), we will build array [C, B, A]
       // during this phase.
       const ancestors = [];
       let ancestorRequest = request.initiatorRequest();
-      let node = criticalNetworkChains;
+      let node = criticalRequestChains;
       while (ancestorRequest) {
         // If the parent request isn't a high priority request it won't be in the
         // requestIdToRequests map, and so we can break the chain here.
-        // TODO(paullewis): Check that it's valid to break the chain.
         const hasAncestorRequest = requestIdToRequests.has(ancestorRequest.requestId);
 
         if (!hasAncestorRequest) {
@@ -111,9 +110,9 @@ class CriticalNetworkChains extends Gather {
     }
 
     this.artifact = {
-      criticalNetworkChains
+      criticalRequestChains
     };
   }
 }
 
-module.exports = CriticalNetworkChains;
+module.exports = CriticalRequestChains;

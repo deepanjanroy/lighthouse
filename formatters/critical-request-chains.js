@@ -21,9 +21,9 @@ const url = require('url');
 const path = require('path');
 const fs = require('fs');
 const Formatter = require('./formatter');
-const html = fs.readFileSync(path.join(__dirname, 'partials/critical-network-chains.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, 'partials/critical-request-chains.html'), 'utf8');
 
-class CriticalNetworkChains extends Formatter {
+class CriticalRequestChains extends Formatter {
 
   /**
    * gets the formatter for the CLI Printer and the HTML report.
@@ -32,9 +32,9 @@ class CriticalNetworkChains extends Formatter {
     switch (type) {
       case 'pretty':
         return function(info) {
-          const longestChain = CriticalNetworkChains._getLongestChainLength(info);
-          const longestDuration = CriticalNetworkChains._getLongestChainDuration(info);
-          const urlTree = CriticalNetworkChains._createURLTreeOutput(info);
+          const longestChain = CriticalRequestChains._getLongestChainLength(info);
+          const longestDuration = CriticalRequestChains._getLongestChainDuration(info);
+          const urlTree = CriticalRequestChains._createURLTreeOutput(info);
 
           const output = `    - Longest request chain (shorter is better): ${longestChain}\n` +
           `    - Longest chain duration (shorter is better): ${longestDuration.toFixed(2)}ms\n` +
@@ -137,7 +137,7 @@ class CriticalNetworkChains extends Formatter {
             (isLastChild ? '┗━' : '┣━') +
             (hasChildren ? '┳' : '━');
 
-        const parsedURL = CriticalNetworkChains.parseURL(node[id].request.url);
+        const parsedURL = CriticalRequestChains.parseURL(node[id].request.url);
 
         if (!startTime) {
           startTime = node[id].request.startTime;
@@ -200,20 +200,20 @@ class CriticalNetworkChains extends Formatter {
   static getHelpers() {
     return {
       longestChain(info) {
-        return CriticalNetworkChains._getLongestChainLength(info);
+        return CriticalRequestChains._getLongestChainLength(info);
       },
 
       longestDuration(info) {
-        return CriticalNetworkChains._getLongestChainDuration(info);
+        return CriticalRequestChains._getLongestChainDuration(info);
       },
 
       chainDuration(startTime, endTime) {
         return ((endTime - startTime) * 1000).toFixed(2);
       },
 
-      parseURL: CriticalNetworkChains.parseURL,
+      parseURL: CriticalRequestChains.parseURL,
 
-      formatTime: CriticalNetworkChains.formatTime,
+      formatTime: CriticalRequestChains.formatTime,
 
       /**
        * Helper function for Handlebars that creates the context for each node
@@ -251,4 +251,4 @@ class CriticalNetworkChains extends Formatter {
   }
 }
 
-module.exports = CriticalNetworkChains;
+module.exports = CriticalRequestChains;

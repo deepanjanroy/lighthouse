@@ -20,7 +20,7 @@
 const Audit = require('../audit');
 const Formatter = require('../../../formatters/formatter');
 
-class CriticalNetworkChains extends Audit {
+class CriticalRequestChains extends Audit {
   /**
    * @override
    */
@@ -32,14 +32,14 @@ class CriticalNetworkChains extends Audit {
    * @override
    */
   static get name() {
-    return 'critical-network-chains';
+    return 'critical-request-chains';
   }
 
   /**
    * @override
    */
   static get description() {
-    return 'Critical Network Chains';
+    return 'Critical Request Chains';
   }
 
   /**
@@ -71,17 +71,17 @@ class CriticalNetworkChains extends Audit {
       }, '');
     }
 
-    walk(artifacts.criticalNetworkChains, 0);
+    walk(artifacts.criticalRequestChains, 0);
 
-    return CriticalNetworkChains.generateAuditResult({
+    return CriticalRequestChains.generateAuditResult({
       value: chainCount,
       optimalValue: this.optimalValue,
       extendedInfo: {
-        formatter: Formatter.SUPPORTED_FORMATS.CRITICAL_NETWORK_CHAINS,
-        value: artifacts.criticalNetworkChains
+        formatter: Formatter.SUPPORTED_FORMATS.CRITICAL_REQUEST_CHAINS,
+        value: artifacts.criticalRequestChains
       }
     });
   }
 }
 
-module.exports = CriticalNetworkChains;
+module.exports = CriticalRequestChains;
