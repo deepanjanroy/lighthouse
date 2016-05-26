@@ -64,7 +64,7 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
       priorityList: [HIGH, MEDIUM, VERY_HIGH, HIGH],
       edges: [[0, 1], [1, 2], [2, 3]],
       expected: {
-        criticalNetworkChains: {
+        criticalRequestChains: {
           0: {
             request: constructEmptyRequest(),
             children: {
@@ -93,7 +93,7 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
       priorityList: [MEDIUM, HIGH, LOW, MEDIUM, HIGH, VERY_LOW],
       edges: [[0, 1], [1, 2], [2, 3], [3, 4]],
       expected: {
-        criticalNetworkChains: {
+        criticalRequestChains: {
           0: {
             request: constructEmptyRequest(),
             children: {
@@ -112,7 +112,7 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
       priorityList: [HIGH, HIGH, HIGH, HIGH],
       edges: [[0, 2], [1, 3]],
       expected: {
-        criticalNetworkChains: {
+        criticalRequestChains: {
           0: {
             request: constructEmptyRequest(),
             children: {
@@ -140,7 +140,7 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
       priorityList: [HIGH, HIGH, HIGH],
       edges: [[0, 1], [0, 2]],
       expected: {
-        criticalNetworkChains: {
+        criticalRequestChains: {
           0: {
             request: constructEmptyRequest(),
             children: {
@@ -163,7 +163,7 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
       priorityList: [HIGH, HIGH, HIGH, HIGH],
       edges: [[0, 1], [1, 2], [1, 3]],
       expected: {
-        criticalNetworkChains: {
+        criticalRequestChains: {
           0: {
             request: constructEmptyRequest(),
             children: {
@@ -191,7 +191,7 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
       priorityList: [LOW, LOW],
       edges: [[0, 1]],
       expected: {
-        criticalNetworkChains: {}
+        criticalRequestChains: {}
       }
     }));
 
@@ -200,7 +200,7 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
       priorityList: [],
       edges: [],
       expected: {
-        criticalNetworkChains: {}
+        criticalRequestChains: {}
       }
     }));
 
@@ -209,7 +209,7 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
       priorityList: [HIGH, HIGH],
       edges: [],
       expected: {
-        criticalNetworkChains: {
+        criticalRequestChains: {
           0: {
             request: constructEmptyRequest(),
             children: {}
@@ -227,7 +227,7 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
       priorityList: Array(9).fill(HIGH),
       edges: [[0, 1], [1, 2], [1, 3], [4, 5], [5, 7], [7, 8], [5, 6]],
       expected: {
-        criticalNetworkChains: {
+        criticalRequestChains: {
           0: {
             request: constructEmptyRequest(),
             children: {
