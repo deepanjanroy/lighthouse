@@ -65,11 +65,13 @@ class CriticalRequestChains extends Gather {
       let ancestorRequest = request.initiatorRequest();
       let node = criticalRequestChains;
       while (ancestorRequest) {
-        // If the parent request isn't a high priority request it won't be in the
-        // requestIdToRequests map, and so we can break the chain here.
         const hasAncestorRequest = requestIdToRequests.has(ancestorRequest.requestId);
 
-        if (!hasAncestorRequest) {
+        // If the parent request isn't a high priority request it won't be in the
+        // requestIdToRequests map, and so we can break the chain here. We should also
+        // break it if we've seen this request before because this is some kind of circular
+        // reference, and that's bad.
+        if (!hasAncestorRequest || includes(ancestors, ancestorRequest.requestId)) {
           // Set the ancestors to an empty array and unset node so that we don't add
           // the request in to the tree.
           ancestors.length = 0;
