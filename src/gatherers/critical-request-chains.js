@@ -32,19 +32,42 @@ class CriticalRequestChains extends Gather {
     return ['VeryHigh', 'High', 'Medium'];
   }
 
+  isCritical(request) {
+    // TODO(deepanjanroy): When possible, chanage
+    // initialPriority -> CurrentPriority
+    return includes(this.criticalPriorities, request.initialPriority());
+  }
+
+  static _fixRedirectPriorities(requestIdToRequests) {
+    // This hack doesn't work if there is more than one consecutive redirect
+    for (let request of requestIdToRequests.values()) {
+      const requestId = request.requestId;
+      if (requestId.includes('redirected')) {
+        const originalRequestId = requestId.substring(0, requestId.indexOf(':'));
+        if (requestIdToRequests.has(originalRequestId)) {
+          const originalRequest = requestIdToRequests.get(originalRequestId);
+          originalRequest.setInitialPriority(request.initialPriority());
+        }
+      }
+    }
+  }
+
   postProfiling(options, tracingData) {
     const networkRecords = tracingData.networkRecords;
 
-    // Get all the critical requests.
-    /** @type {!Array<NetworkRequest>} */
-    const criticalRequests = networkRecords.filter(
-      req => includes(this.criticalPriorities, req.initialPriority()));
-
     // Build a map of requestID -> Node.
     const requestIdToRequests = new Map();
-    for (let request of criticalRequests) {
+    for (let request of networkRecords) {
       requestIdToRequests.set(request.requestId, request);
     }
+
+    // This should go away once we fix
+    // https://github.com/GoogleChrome/lighthouse/issues/326
+    CriticalRequestChains._fixRedirectPriorities(requestIdToRequests);
+
+    // Get all the critical requests.
+    /** @type {!Array<NetworkRequest>} */
+    const criticalRequests = networkRecords.filter(req => this.isCritical(req));
 
     const flattenRequest = request => {
       return {
@@ -65,13 +88,13 @@ class CriticalRequestChains extends Gather {
       let ancestorRequest = request.initiatorRequest();
       let node = criticalRequestChains;
       while (ancestorRequest) {
-        const hasAncestorRequest = requestIdToRequests.has(ancestorRequest.requestId);
+        const ancestorIsCritical = this.isCritical(ancestorRequest);
 
         // If the parent request isn't a high priority request it won't be in the
         // requestIdToRequests map, and so we can break the chain here. We should also
         // break it if we've seen this request before because this is some kind of circular
         // reference, and that's bad.
-        if (!hasAncestorRequest || includes(ancestors, ancestorRequest.requestId)) {
+        if (!ancestorIsCritical || includes(ancestors, ancestorRequest.requestId)) {
           // Set the ancestors to an empty array and unset node so that we don't add
           // the request in to the tree.
           ancestors.length = 0;
@@ -115,6 +138,7 @@ class CriticalRequestChains extends Gather {
       criticalRequestChains
     };
   }
+
 }
 
 module.exports = CriticalRequestChains;
