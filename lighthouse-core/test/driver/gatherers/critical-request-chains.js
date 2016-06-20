@@ -273,13 +273,13 @@ describe('CriticalRequestChain gatherer: getCriticalChain function', () => {
     const criticalChains = Gatherer.artifact;
 
     assert.deepEqual(criticalChains, {
-      '0': {
+      0: {
         request: constructEmptyRequest(),
         children: {
           '1:redirected.0': {
             request: constructEmptyRequest(),
             children: {
-              '1': {
+              1: {
                 request: constructEmptyRequest(),
                 children: {}
               }
