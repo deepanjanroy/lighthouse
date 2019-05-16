@@ -687,6 +687,14 @@
     "message": "Minimizes main-thread work",
     "description": "Title of a diagnostic audit that provides detail on the main thread work the browser did to load the page. This descriptive title is shown to users when the amount is acceptable and no user action is required."
   },
+  "lighthouse-core/audits/metrics/cumulative-long-queuing-delay.js | description": {
+    "message": "[Experimental metric]. Sum of Task Lengths beyond 50ms, between First Contentful Paint and Time To Interactive.",
+    "description": ""
+  },
+  "lighthouse-core/audits/metrics/cumulative-long-queuing-delay.js | title": {
+    "message": "Cumulative Long Queuing Delay",
+    "description": ""
+  },
   "lighthouse-core/audits/metrics/estimated-input-latency.js | description": {
     "message": "Estimated Input Latency is an estimate of how long your app takes to respond to user input, in milliseconds, during the busiest 5s window of page load. If your latency is higher than 50 ms, users may perceive your app as laggy. [Learn more](https://developers.google.com/web/tools/lighthouse/audits/estimated-input-latency).",
     "description": "Description of the Estimated Input Latency metric that estimates the amount of time, in milliseconds, that the app takes to respond to user input. This description is displayed within a tooltip when the user hovers on the metric name to see more. No character length limits. 'Learn More' becomes link text to additional documentation."
