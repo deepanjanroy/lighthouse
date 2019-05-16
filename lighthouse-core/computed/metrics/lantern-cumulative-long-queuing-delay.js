@@ -54,7 +54,7 @@ class LanternCumulativeLongQueuingDelay extends LanternMetric {
       ? extras.fcpResult.pessimisticEstimate.timeInMs
       : extras.fcpResult.optimisticEstimate.timeInMs;
 
-    // Optimistic Interactive Time means less tasks were considered while counting
+    // Optimistic Interactive Time means fewer tasks were considered while counting
     // CumulativeLongQueuingDelay, which should result in a lower (better) value.
     const interactiveTimeMs = extras.optimistic
       ? extras.interactiveResult.optimisticEstimate.timeInMs
