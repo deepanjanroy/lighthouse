@@ -195,9 +195,10 @@
       "id": "cumulative-long-queuing-delay",
       "title": "Cumulative Long Queuing Delay",
       "description": "[Experimental metric]. Sum of Task Lengths beyond 50ms, between First Contentful Paint and Time To Interactive.",
-      "score": null,
-      "scoreDisplayMode": "error",
-      "errorMessage": "Invalid score for cumulative-long-queuing-delay: NaN"
+      "score": 0.83,
+      "scoreDisplayMode": "numeric",
+      "numericValue": 116.79800000000023,
+      "displayValue": "120 ms"
     },
     "max-potential-fid": {
       "id": "max-potential-fid",
@@ -1256,7 +1257,7 @@
             "speedIndex": 4417,
             "speedIndexTs": 185607736912,
             "estimatedInputLatency": 16,
-            "cumulativeLongQueuingDelay": null,
+            "cumulativeLongQueuingDelay": 117,
             "observedNavigationStart": 0,
             "observedNavigationStartTs": 185603319912,
             "observedFirstPaint": 3969,
@@ -5139,6 +5140,12 @@
             "timeInMs": 16
           },
           "path": "audits[estimated-input-latency].displayValue"
+        },
+        {
+          "values": {
+            "timeInMs": 116.79800000000023
+          },
+          "path": "audits[cumulative-long-queuing-delay].displayValue"
         },
         {
           "values": {

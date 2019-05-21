@@ -5,7 +5,8 @@
  */
 'use strict';
 
-const CumulativeLongQueuingDelay = require('../../../computed/metrics/cumulative-long-queuing-delay.js');
+const CumulativeLongQueuingDelay =
+    require('../../../computed/metrics/cumulative-long-queuing-delay.js');
 const trace = require('../../fixtures/traces/progressive-app-m60.json');
 const devtoolsLog = require('../../fixtures/traces/progressive-app-m60.devtools.log.json');
 
