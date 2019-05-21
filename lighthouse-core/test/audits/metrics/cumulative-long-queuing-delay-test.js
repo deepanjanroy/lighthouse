@@ -6,7 +6,6 @@
 'use strict';
 
 const Audit = require('../../../audits/metrics/cumulative-long-queuing-delay.js');
-const assert = require('assert');
 const options = Audit.defaultOptions;
 
 const pwaTrace = require('../../fixtures/traces/progressive-app-m60.json');
@@ -26,8 +25,8 @@ describe('Performance: cumulative-long-queuing-delay audit', () => {
     const context = {options, settings, computedCache: new Map()};
 
     return Audit.audit(artifacts, context).then(output => {
-      assert.equal(Math.round(output.numericValue * 10) / 10, 48.3);
-      assert.equal(output.score, 1);
+      expect(output.numericValue).toBeCloseTo(48.3, 1);
+      expect(output.score).toBeCloseTo(0.97, 2);
       expect(output.displayValue).toBeDisplayString('50\xa0ms');
     });
   });

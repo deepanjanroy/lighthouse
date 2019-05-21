@@ -5,10 +5,7 @@
  */
 'use strict';
 
-const CumulativeLongQueuingDelay =
-  require('../../../computed/metrics/cumulative-long-queuing-delay.js');
-const assert = require('assert');
-
+const CumulativeLongQueuingDelay = require('../../../computed/metrics/cumulative-long-queuing-delay.js');
 const trace = require('../../fixtures/traces/progressive-app-m60.json');
 const devtoolsLog = require('../../fixtures/traces/progressive-app-m60.devtools.log.json');
 
@@ -27,7 +24,13 @@ describe('Metrics: CumulativeLongQueuingDelay', () => {
       timing: Math.round(result.timing),
       optimistic: Math.round(result.optimisticEstimate.timeInMs),
       pessimistic: Math.round(result.pessimisticEstimate.timeInMs),
-    }).toMatchSnapshot();
+    }).toMatchInlineSnapshot(`
+Object {
+  "optimistic": 719,
+  "pessimistic": 777,
+  "timing": 748,
+}
+`);
   });
 
   it('should compute an observed value', async () => {
@@ -37,7 +40,7 @@ describe('Metrics: CumulativeLongQueuingDelay', () => {
       {trace, devtoolsLog, settings},
       context
     );
-    assert.equal(Math.round(result.timing * 10) / 10, 48.3);
+    expect(result.timing).toBeCloseTo(48.3, 1);
   });
 
   describe('#calculateSumOfLongQueuingDelay', () => {
@@ -50,15 +53,15 @@ describe('Metrics: CumulativeLongQueuingDelay', () => {
       const fcpTimeMs = 500;
       const interactiveTimeMs = 4000;
 
-      assert.equal(
-        CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
-          events, fcpTimeMs, interactiveTimeMs), 0);
+      expect(CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
+        events,
+        fcpTimeMs,
+        interactiveTimeMs
+      )).toBe(0);
     });
 
     it('only looks at tasks within FMP and TTI', () => {
       const events = [
-        // TODO(deepanjanroy@): Is there an interval data structure in lighthouse?
-        // Specifying both end time and duration like this is error prone.
         {start: 1000, end: 1060, duration: 60},
         {start: 2000, end: 2100, duration: 100},
         {start: 2300, end: 2450, duration: 150},
@@ -68,9 +71,11 @@ describe('Metrics: CumulativeLongQueuingDelay', () => {
       const fcpTimeMs = 1500;
       const interactiveTimeMs = 2500;
 
-      assert.equal(
-        CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
-          events, fcpTimeMs, interactiveTimeMs), 150);
+      expect(CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
+        events,
+        fcpTimeMs,
+        interactiveTimeMs
+      )).toBe(150);
     });
 
     it('clips queuing delay regions properly', () => {
@@ -82,10 +87,11 @@ describe('Metrics: CumulativeLongQueuingDelay', () => {
         {start: 2000, end: 2100, duration: 100}, // Contributes 50ms.
       ];
 
-
-      assert.equal(
-        CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
-          events, fcpTimeMs, interactiveTimeMs), 60);
+      expect(CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
+        events,
+        fcpTimeMs,
+        interactiveTimeMs
+      )).toBe(60);
     });
   });
 });

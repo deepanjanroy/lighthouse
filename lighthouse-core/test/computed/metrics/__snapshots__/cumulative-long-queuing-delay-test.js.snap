@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`Metrics: CumulativeLongQueuingDelay should compute a simulated value 1`] = `
-Object {
-  "optimistic": 719,
-  "pessimistic": 777,
-  "timing": 748,
-}
-`;

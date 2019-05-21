@@ -13,9 +13,13 @@ const LanternCumulativeLongQueuingDelay = require('./lantern-cumulative-long-que
 const TimetoInteractive = require('./interactive.js');
 
 /**
- * @fileoverview This audit determines the largest 90 percentile EQT value of all 5s windows between
- *    FMP and the end of the trace.
- * @see https://docs.google.com/document/d/1b9slyaB9yho91YTOkAQfpCdULFkZM9LqsipcX3t7He8/preview
+ * @fileoverview This audit determines Cumulative Long Queuing Delay between FCP and TTI.
+
+ * We define Long Queuing Delay Region as any time interval in the loading timeline where queuing
+ * time for an input event would be longer than 50ms. For example, if there is a 250ms main thread
+ * task, the first 200ms of it is long queuing delay region, because any input event happening in
+ * that time period has to wait more than 50ms. Cumulative Long Queuing Delay is the sum of all Long
+ * Queuing Delay Regions between First Contentful Paint and Interactive Time (TTI).
  */
 class CumulativeLongQueuingDelay extends ComputedMetric {
   /**
@@ -33,11 +37,15 @@ class CumulativeLongQueuingDelay extends ComputedMetric {
   static calculateSumOfLongQueuingDelay(topLevelEvents, fcpTimeInMs, interactiveTimeMs) {
     const threshold = CumulativeLongQueuingDelay.LONG_QUEUING_DELAY_THRESHOLD;
     const longQueuingDelayRegions = [];
-    // [              250ms Task                   ]
-    // |  Long Queuing Delay Region  |   Last 50ms |
-    //           200 ms
+    // First identifying the long queuing delay regions.
     for (const event of topLevelEvents) {
+      // If the task is less than the delay threshold, it contains no long queuing delay region.
       if (event.duration < threshold) continue;
+      // Otherwise, the duration of the task except the delay-threshold-sized interval at the end is
+      // considered long queuing delay region. Example assuming the threshold is 50ms:
+      //   [              250ms Task                   ]
+      //   |  Long Queuing Delay Region  |   Last 50ms |
+      //               200 ms
       longQueuingDelayRegions.push({
         start: event.start,
         end: event.end - threshold,
@@ -47,11 +55,24 @@ class CumulativeLongQueuingDelay extends ComputedMetric {
 
     let sumLongQueuingDelay = 0;
     for (const region of longQueuingDelayRegions) {
+      // We only want to add up the Long Queuing Delay regions that fall between FCP and TTI.
+      //
+      // FCP is picked as the lower bound because there is little risk of user input happening
+      // before FCP so Long Queuing Qelay regions do not harm user experience. Developers should be
+      // optimizing to reach FCP as fast as possible without having to worry about task lengths.
+      //
+      // TTI is picked as the upper bound because we want a well defined end point so that the
+      // metric does not rely on how long we trace. There is very low probability of encountering a
+      // Long Queuing Delay region past TTI.
       if (region.end < fcpTimeInMs) continue;
       if (region.start > interactiveTimeMs) continue;
+
+      // If a Long Queuing Delay Region spans the edges of our region of interest, we clip it to
+      // only include the part of the region that falls inside.
       const clippedStart = Math.max(region.start, fcpTimeInMs);
       const clippedEnd = Math.min(region.end, interactiveTimeMs);
       const queuingDelayAfterClipping = clippedEnd - clippedStart;
+
       sumLongQueuingDelay += queuingDelayAfterClipping;
     }
 
@@ -72,26 +93,25 @@ class CumulativeLongQueuingDelay extends ComputedMetric {
    * @param {LH.Audit.Context} context
    * @return {Promise<LH.Artifacts.Metric>}
    */
-  static computeObservedMetric(data, context) {
+  static async computeObservedMetric(data, context) {
     const {firstContentfulPaint} = data.traceOfTab.timings;
     if (!firstContentfulPaint) {
       throw new LHError(LHError.errors.NO_FCP);
     }
 
-    return TimetoInteractive.request(data, context).then(artifact => {
-      const interactiveTimeMs = artifact.timing;
-      // Not using the start time argument of getMainThreadTopLevelEvents, because
-      // we need to clip the part of the task before the last 50ms properly.
-      const events = TracingProcessor.getMainThreadTopLevelEvents(data.traceOfTab);
+    const interactiveTimeMs = (await TimetoInteractive.request(data, context)).timing;
 
-      return {
-        timing: CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
-          events,
-          firstContentfulPaint,
-          interactiveTimeMs
-        ),
-      };
-    });
+    // Not using the start time argument of getMainThreadTopLevelEvents, because
+    // we need to clip the part of the task before the last 50ms properly.
+    const events = TracingProcessor.getMainThreadTopLevelEvents(data.traceOfTab);
+
+    return {
+      timing: CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
+        events,
+        firstContentfulPaint,
+        interactiveTimeMs
+      ),
+    };
   }
 }
 
