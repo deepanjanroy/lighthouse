@@ -16,9 +16,9 @@ const TimetoInteractive = require('./interactive.js');
  * @fileoverview This audit determines Cumulative Long Queuing Delay between FCP and TTI.
 
  * We define Long Queuing Delay Region as any time interval in the loading timeline where queuing
- * time for an input event would be longer than 50ms. For example, if there is a 250ms main thread
- * task, the first 200ms of it is long queuing delay region, because any input event happening in
- * that time period has to wait more than 50ms. Cumulative Long Queuing Delay is the sum of all Long
+ * time for an input event would be longer than 50ms. For example, if there is a 110ms main thread
+ * task, the first 60ms of it is Long Queuing Delay Region, because any input event occuring in
+ * that region has to wait more than 50ms. Cumulative Long Queuing Delay is the sum of all Long
  * Queuing Delay Regions between First Contentful Paint and Interactive Time (TTI).
  */
 class CumulativeLongQueuingDelay extends ComputedMetric {
@@ -39,10 +39,10 @@ class CumulativeLongQueuingDelay extends ComputedMetric {
     const longQueuingDelayRegions = [];
     // First identifying the long queuing delay regions.
     for (const event of topLevelEvents) {
-      // If the task is less than the delay threshold, it contains no long queuing delay region.
+      // If the task is less than the delay threshold, it contains no Long Queuing Delay Region.
       if (event.duration < threshold) continue;
-      // Otherwise, the duration of the task except the delay-threshold-sized interval at the end is
-      // considered long queuing delay region. Example assuming the threshold is 50ms:
+      // Otherwise, the duration of the task before the delay-threshold-sized interval at the end is
+      // considered Long Queuing Delay Region. Example assuming the threshold is 50ms:
       //   [              250ms Task                   ]
       //   |  Long Queuing Delay Region  |   Last 50ms |
       //               200 ms

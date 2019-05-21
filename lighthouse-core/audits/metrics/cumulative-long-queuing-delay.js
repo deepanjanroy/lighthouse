@@ -51,9 +51,9 @@ class CumulativeLongQueuingDelay extends Audit {
    *
    * We define Long Queuing Delay Region as any time interval in the loading timeline where queuing
    * time for an input event would be longer than 50ms. For example, if there is a 110ms main thread
-   * task, the first 60ms of it is long queuing delay region, because any input event happening in
-   * that time period has to wait more than 50ms. Cumulative Long Queuing Delay is the sum of all
-   * Long Queuing Delay Regions between First Contentful Paint and Interactive Time (TTI).
+   * task, the first 60ms of it is Long Queuing Delay Region, because any input event occuring in
+   * that region has to wait more than 50ms. Cumulative Long Queuing Delay is the sum of all Long
+   * Queuing Delay Regions between First Contentful Paint and Interactive Time (TTI).
    *
    * @param {LH.Artifacts} artifacts
    * @param {LH.Audit.Context} context
