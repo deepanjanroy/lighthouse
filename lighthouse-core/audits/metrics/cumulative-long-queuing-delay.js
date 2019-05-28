@@ -5,7 +5,7 @@
  */
 'use strict';
 
-const Audit = require('../audit');
+const Audit = require('../audit.js');
 const CumulativeLQD = require('../../computed/metrics/cumulative-long-queuing-delay.js');
 
 // TODO(deepanjanroy): i18n strings once metric is final.
