@@ -20,6 +20,11 @@ const TimetoInteractive = require('./interactive.js');
  * task, the first 60ms of it is Long Queuing Delay Region, because any input event occuring in
  * that region has to wait more than 50ms. Cumulative Long Queuing Delay is the sum of all Long
  * Queuing Delay Regions between First Contentful Paint and Interactive Time (TTI).
+ *
+ * This is a new metric designed to accompany Time to Interactive. TTI is strict and does not
+ * reflect incremental improvements to the site performance unless the improvement concerns the last
+ * long task. Cumulative Long Queuing Delay on the other hand is designed to be much more responsive
+ * to smaller improvements to main thread responsiveness.
  */
 class CumulativeLongQueuingDelay extends ComputedMetric {
   /**
@@ -35,6 +40,8 @@ class CumulativeLongQueuingDelay extends ComputedMetric {
    * @return {number}
    */
   static calculateSumOfLongQueuingDelay(topLevelEvents, fcpTimeInMs, interactiveTimeMs) {
+    if (interactiveTimeMs <= fcpTimeInMs) return 0;
+
     const threshold = CumulativeLongQueuingDelay.LONG_QUEUING_DELAY_THRESHOLD;
     const longQueuingDelayRegions = [];
     // First identifying the long queuing delay regions.

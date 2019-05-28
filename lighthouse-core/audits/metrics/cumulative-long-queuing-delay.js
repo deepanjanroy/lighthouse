@@ -6,16 +6,14 @@
 'use strict';
 
 const Audit = require('../audit');
-const i18n = require('../../lib/i18n/i18n.js');
 const CumulativeLQD = require('../../computed/metrics/cumulative-long-queuing-delay.js');
 
-const UIStrings = {
+// TODO(deepanjanroy): i18n strings once metric is final.
+const UIStringsNotExported = {
   title: 'Cumulative Long Queuing Delay',
-  description: '[Experimental metric]. Sum of Task Lengths beyond 50ms, between ' +
-      'First Contentful Paint and Time To Interactive.',
+  description: '[Experimental metric] Total time period between FCP and Time to Interactive ' +
+      'during which queuing time for any input event would be higher than 50ms.',
 };
-
-const str_ = i18n.createMessageInstanceIdFn(__filename, UIStrings);
 
 class CumulativeLongQueuingDelay extends Audit {
   /**
@@ -24,8 +22,8 @@ class CumulativeLongQueuingDelay extends Audit {
   static get meta() {
     return {
       id: 'cumulative-long-queuing-delay',
-      title: str_(UIStrings.title),
-      description: str_(UIStrings.description),
+      title: UIStringsNotExported.title,
+      description: UIStringsNotExported.description,
       scoreDisplayMode: Audit.SCORING_MODES.NUMERIC,
       requiredArtifacts: ['traces', 'devtoolsLogs'],
     };
@@ -36,13 +34,14 @@ class CumulativeLongQueuingDelay extends Audit {
    */
   static get defaultOptions() {
     return {
-      // Generally, the scoreMedian and scorePODR value is set to be real world 25th/75th and
-      // 5th/95th percentile value respectively. According to a cluster telemetry run over top 10k
-      // sites on mobile, 25-th percentile was 270ms, 10-th percentile was 22ms, and 5th percentile
-      // was 0ms. These numbers include 404 pages, so rounding up the scoreMedian to 300ms and
-      // picking 25ms as PODR. See curve at https://www.desmos.com/calculator/x3nzenjyln
-      scoreMedian: 300,
-      scorePODR: 25,
+      // According to a cluster telemetry run over top 10k sites on mobile, 5th percentile was 0ms,
+      // 25th percentile was 270ms and median was 895ms. These numbers include 404 pages. Picking
+      // thresholds according to our 25/75-th rule will be quite harsh scoring (a single 350ms task)
+      // after FCP will yield a score of .5. The following coefficients are semi-arbitrarily picked
+      // to give 600ms jank a score of .5 and 100ms jank a score of .999. We can tweak these numbers
+      // in the future. See https://www.desmos.com/calculator/a7ib75kq3g
+      scoreMedian: 600,
+      scorePODR: 200,
     };
   }
 
@@ -72,10 +71,9 @@ class CumulativeLongQueuingDelay extends Audit {
         context.options.scoreMedian
       ),
       numericValue: metricResult.timing,
-      displayValue: str_(i18n.UIStrings.ms, {timeInMs: metricResult.timing}),
+      displayValue: 10 * Math.round(metricResult.timing / 10) + '\xa0ms',
     };
   }
 }
 
 module.exports = CumulativeLongQueuingDelay;
-module.exports.UIStrings = UIStrings;

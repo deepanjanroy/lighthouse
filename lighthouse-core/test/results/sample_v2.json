@@ -194,8 +194,8 @@
     "cumulative-long-queuing-delay": {
       "id": "cumulative-long-queuing-delay",
       "title": "Cumulative Long Queuing Delay",
-      "description": "[Experimental metric]. Sum of Task Lengths beyond 50ms, between First Contentful Paint and Time To Interactive.",
-      "score": 0.83,
+      "description": "[Experimental metric] Total time period between FCP and Time to Interactive during which queuing time for any input event would be higher than 50ms.",
+      "score": 1,
       "scoreDisplayMode": "numeric",
       "numericValue": 116.79800000000023,
       "displayValue": "120 ms"
@@ -5143,12 +5143,6 @@
         },
         {
           "values": {
-            "timeInMs": 116.79800000000023
-          },
-          "path": "audits[cumulative-long-queuing-delay].displayValue"
-        },
-        {
-          "values": {
             "timeInMs": 122.537
           },
           "path": "audits[max-potential-fid].displayValue"
@@ -5165,12 +5159,6 @@
           },
           "path": "audits[network-server-latency].displayValue"
         }
-      ],
-      "lighthouse-core/audits/metrics/cumulative-long-queuing-delay.js | title": [
-        "audits[cumulative-long-queuing-delay].title"
-      ],
-      "lighthouse-core/audits/metrics/cumulative-long-queuing-delay.js | description": [
-        "audits[cumulative-long-queuing-delay].description"
       ],
       "lighthouse-core/audits/metrics/max-potential-fid.js | title": [
         "audits[max-potential-fid].title"

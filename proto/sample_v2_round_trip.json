@@ -378,11 +378,11 @@
             "title": "Minimize Critical Requests Depth"
         },
         "cumulative-long-queuing-delay": {
-            "description": "[Experimental metric]. Sum of Task Lengths beyond 50ms, between First Contentful Paint and Time To Interactive.",
+            "description": "[Experimental metric] Total time period between FCP and Time to Interactive during which queuing time for any input event would be higher than 50ms.",
             "displayValue": "120\u00a0ms",
             "id": "cumulative-long-queuing-delay",
             "numericValue": 116.79800000000023,
-            "score": 0.83,
+            "score": 1.0,
             "scoreDisplayMode": "numeric",
             "title": "Cumulative Long Queuing Delay"
         },

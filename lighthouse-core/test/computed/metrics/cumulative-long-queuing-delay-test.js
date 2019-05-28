@@ -45,7 +45,7 @@ Object {
   });
 
   describe('#calculateSumOfLongQueuingDelay', () => {
-    it('reports 0 when no task is longer than 50ms', async () => {
+    it('reports 0 when no task is longer than 50ms', () => {
       const events = [
         {start: 1000, end: 1050, duration: 50},
         {start: 2000, end: 2010, duration: 10},
@@ -85,7 +85,7 @@ Object {
 
       const events = [
         {start: 1000, end: 1110, duration: 110}, // Contributes 10ms.
-        {start: 2000, end: 2100, duration: 100}, // Contributes 50ms.
+        {start: 2000, end: 2200, duration: 200}, // Contributes 50ms.
       ];
 
       expect(CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
@@ -93,6 +93,23 @@ Object {
         fcpTimeMs,
         interactiveTimeMs
       )).toBe(60);
+    });
+
+    // This can happen in the lantern metric case, where we use the optimistic
+    // TTI and pessimistic FCP.
+    it('returns 0 if interactiveTime is earlier than FCP', () => {
+      const fcpTimeMs = 2050;
+      const interactiveTimeMs = 1050;
+
+      const events = [
+        {start: 500, end: 3000, duration: 2500},
+      ];
+
+      expect(CumulativeLongQueuingDelay.calculateSumOfLongQueuingDelay(
+        events,
+        fcpTimeMs,
+        interactiveTimeMs
+      )).toBe(0);
     });
   });
 });

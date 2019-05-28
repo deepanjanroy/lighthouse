@@ -19,15 +19,14 @@ function generateArtifactsWithTrace(trace) {
 /* eslint-env jest */
 
 describe('Performance: cumulative-long-queuing-delay audit', () => {
-  it('evaluates cumulative long queuing delay metric properly', () => {
+  it('evaluates cumulative long queuing delay metric properly', async () => {
     const artifacts = generateArtifactsWithTrace(pwaTrace);
     const settings = {throttlingMethod: 'provided'};
     const context = {options, settings, computedCache: new Map()};
+    const output = await Audit.audit(artifacts, context);
 
-    return Audit.audit(artifacts, context).then(output => {
-      expect(output.numericValue).toBeCloseTo(48.3, 1);
-      expect(output.score).toBeCloseTo(0.97, 2);
-      expect(output.displayValue).toBeDisplayString('50\xa0ms');
-    });
+    expect(output.numericValue).toBeCloseTo(48.3, 1);
+    expect(output.score).toBeCloseTo(1, 2);
+    expect(output.displayValue).toBeDisplayString('50\xa0ms');
   });
 });
