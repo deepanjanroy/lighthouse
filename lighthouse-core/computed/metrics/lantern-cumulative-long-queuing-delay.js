@@ -47,15 +47,18 @@ class LanternCumulativeLongQueuingDelay extends LanternMetric {
    * @return {LH.Gatherer.Simulation.Result}
    */
   static getEstimateFromSimulation(simulation, extras) {
-    // Intentionally use the opposite FCP estimate, a more pessimistic FCP means that more tasks are
-    // excluded from the CumulativeLongQueuingDelay computation, so a higher FCP means lower value
-    // for the same work.
+    // Intentionally use the opposite FCP estimate. A pessimistic FCP is higher than equal to an
+    // optimistic FCP, which means potentially more tasks are excluded from the
+    // CumulativeLongQueuingDelay computation. So a more pessimistic FCP gives a more optimistic
+    // CumulativeLongQueuingDelay for the same work.
     const fcpTimeInMs = extras.optimistic
       ? extras.fcpResult.pessimisticEstimate.timeInMs
       : extras.fcpResult.optimisticEstimate.timeInMs;
 
-    // Optimistic Interactive Time means fewer tasks were considered while counting
-    // CumulativeLongQueuingDelay, which should result in a lower (better) value.
+    // Similarly, we always have pessimistic TTI >= optimistic TTI. Therefore, picking optimistic
+    // TTI means our window of interest is smaller and thus potentially more tasks are excluded from
+    // CumulativeLongQueuingDelay computation, yielding a lower (more optimistic)
+    // CumulativeLongQueuingDelay value for the same work.
     const interactiveTimeMs = extras.optimistic
       ? extras.interactiveResult.optimisticEstimate.timeInMs
       : extras.interactiveResult.pessimisticEstimate.timeInMs;
@@ -101,7 +104,7 @@ class LanternCumulativeLongQueuingDelay extends LanternMetric {
 
     for (const [node, timing] of nodeTimings.entries()) {
       if (node.type !== BaseNode.TYPES.CPU) continue;
-      // Filtering out events below minimum duration to avoid unnecessary sorting work later.
+      // Filtering out events below minimum duration.
       if (timing.duration < minDurationMs) continue;
 
       events.push({
@@ -111,7 +114,7 @@ class LanternCumulativeLongQueuingDelay extends LanternMetric {
       });
     }
 
-    return events.sort((a, b) => a.start - b.start);
+    return events;
   }
 }
 

@@ -69,8 +69,7 @@ class CumulativeLongQueuingDelay extends ComputedMetric {
       // optimizing to reach FCP as fast as possible without having to worry about task lengths.
       //
       // TTI is picked as the upper bound because we want a well defined end point so that the
-      // metric does not rely on how long we trace. There is very low probability of encountering a
-      // Long Queuing Delay region past TTI.
+      // metric does not rely on how long we trace.
       if (region.end < fcpTimeInMs) continue;
       if (region.start > interactiveTimeMs) continue;
 

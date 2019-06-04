@@ -5,15 +5,15 @@
  */
 'use strict';
 
-const Audit = require('../../../audits/metrics/cumulative-long-queuing-delay.js');
-const options = Audit.defaultOptions;
+const cLQDAudit = require('../../../audits/metrics/cumulative-long-queuing-delay.js');
+const options = cLQDAudit.defaultOptions;
 
 const pwaTrace = require('../../fixtures/traces/progressive-app-m60.json');
 
 function generateArtifactsWithTrace(trace) {
   return {
-    traces: {[Audit.DEFAULT_PASS]: trace},
-    devtoolsLogs: {[Audit.DEFAULT_PASS]: []},
+    traces: {[cLQDAudit.DEFAULT_PASS]: trace},
+    devtoolsLogs: {[cLQDAudit.DEFAULT_PASS]: []},
   };
 }
 /* eslint-env jest */
@@ -23,10 +23,10 @@ describe('Performance: cumulative-long-queuing-delay audit', () => {
     const artifacts = generateArtifactsWithTrace(pwaTrace);
     const settings = {throttlingMethod: 'provided'};
     const context = {options, settings, computedCache: new Map()};
-    const output = await Audit.audit(artifacts, context);
+    const output = await cLQDAudit.audit(artifacts, context);
 
     expect(output.numericValue).toBeCloseTo(48.3, 1);
-    expect(output.score).toBeCloseTo(1, 2);
+    expect(output.score).toBe(1);
     expect(output.displayValue).toBeDisplayString('50\xa0ms');
   });
 });
